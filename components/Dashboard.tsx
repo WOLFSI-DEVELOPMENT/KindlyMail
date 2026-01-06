@@ -21,23 +21,51 @@ export const Dashboard: React.FC = () => {
 
   // Check auth and onboarding status
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/login');
-      } else {
-        setSession(session);
-        const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
-        if (hasOnboarded !== 'true') {
-            navigate('/onboarding');
+    const checkAuth = async () => {
+        // Check for Guest Mode first
+        const isGuest = localStorage.getItem('kindlymail_guest') === 'true';
+        if (isGuest) {
+            setSession({
+                user: {
+                    id: 'guest',
+                    email: 'guest@kindlymail.demo',
+                    user_metadata: {
+                        full_name: 'Guest Designer',
+                        avatar_url: null
+                    }
+                }
+            });
+            const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+            if (hasOnboarded !== 'true') {
+                navigate('/onboarding');
+            }
+            return;
         }
-      }
-    });
+
+        // Check Supabase
+        const { data: { session: sbSession } } = await supabase.auth.getSession();
+        if (!sbSession) {
+            navigate('/login');
+        } else {
+            setSession(sbSession);
+            const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+            if (hasOnboarded !== 'true') {
+                navigate('/onboarding');
+            }
+        }
+    };
+
+    checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
        if (event === 'SIGNED_OUT') {
+           // Also clear guest mode on sign out
+           localStorage.removeItem('kindlymail_guest');
            navigate('/login');
        }
-       setSession(session);
+       if (session) {
+           setSession(session);
+       }
     });
 
     return () => subscription.unsubscribe();
@@ -66,6 +94,7 @@ export const Dashboard: React.FC = () => {
   });
 
   const handleSignOut = async () => {
+    localStorage.removeItem('kindlymail_guest');
     await signOut();
     navigate('/login');
   };
@@ -252,6 +281,10 @@ export const Dashboard: React.FC = () => {
   const handlePublishCreation = async (draft: GeneratedEmail) => {
      if (!session?.user) {
          alert("You must be logged in to publish.");
+         return;
+     }
+     if (session.user.id === 'guest') {
+         alert("Guest users cannot publish to the community. Please sign up for an account.");
          return;
      }
      

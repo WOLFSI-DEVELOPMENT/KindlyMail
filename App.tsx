@@ -6,6 +6,7 @@ import { Dashboard } from './components/Dashboard';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { BrandAssetsView } from './components/BrandAssetsView';
 import { LegalView } from './components/LegalView';
+import { NotFoundPage } from './components/NotFoundPage';
 
 export default function App() {
   return (
@@ -17,7 +18,8 @@ export default function App() {
         <Route path="/app" element={<Dashboard />} />
         <Route path="/brand-assets" element={<BrandAssetsView />} />
         <Route path="/legal" element={<LegalView />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Catch-all route for Custom 404 */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

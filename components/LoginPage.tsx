@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, ArrowLeft, Loader2, Mail, Lock, User } from 'lucide-react';
+import { Heart, ArrowLeft, Loader2, Mail, Lock, User, Ghost } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -46,6 +46,13 @@ export const LoginPage: React.FC = () => {
        setIsLoading(false);
        setMessage({ type: 'error', text: error.message });
     }
+  };
+
+  const handleGuestLogin = () => {
+      // Simulate a login for demo purposes since Auth might be flaky in preview
+      localStorage.setItem('kindlymail_guest', 'true');
+      localStorage.removeItem('kindlymail_onboarded'); // Force onboarding for guest
+      navigate('/onboarding');
   };
 
   return (
@@ -117,15 +124,27 @@ export const LoginPage: React.FC = () => {
                 </div>
             </div>
 
-            <button 
-                type="button"
-                onClick={handleGoogleLogin}
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 bg-stone-50 border border-stone-200 text-stone-900 font-medium py-3.5 rounded-full hover:bg-stone-100 transition-all disabled:opacity-50"
-            >
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-                Sign in with Google
-            </button>
+            <div className="flex flex-col gap-3">
+                <button 
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-3 bg-stone-50 border border-stone-200 text-stone-900 font-medium py-3.5 rounded-full hover:bg-stone-100 transition-all disabled:opacity-50"
+                >
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                    Sign in with Google
+                </button>
+                
+                {/* Guest / Demo Button */}
+                <button 
+                    type="button"
+                    onClick={handleGuestLogin}
+                    className="w-full flex items-center justify-center gap-3 bg-white border border-dashed border-stone-300 text-stone-500 font-medium py-3.5 rounded-full hover:bg-stone-50 hover:text-stone-900 hover:border-stone-400 transition-all"
+                >
+                    <Ghost size={18} />
+                    Continue as Guest (Demo Mode)
+                </button>
+            </div>
 
             <div className="mt-8 text-center text-sm">
                 <span className="text-stone-500">
