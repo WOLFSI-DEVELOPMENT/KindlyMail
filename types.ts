@@ -45,12 +45,23 @@ export interface ToneSettings {
   emojis: 'Default' | 'More' | 'Less';
 }
 
+export interface VoiceFingerprint {
+  keywords: string[];
+  sentenceLength: string;
+  structure: string;
+  vocabularyLevel: string;
+  signatureStyle: string;
+  summary: string;
+}
+
 export type OutputFormat = 'html' | 'text';
 
 export interface PersonalContext {
   systemInstructions: string;
   files: UploadedFile[];
   toneSettings: ToneSettings;
+  voiceFingerprint?: VoiceFingerprint;
+  model?: string;
 }
 
 export interface Creation {

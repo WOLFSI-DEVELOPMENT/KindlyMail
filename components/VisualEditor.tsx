@@ -3,10 +3,9 @@ import { Type, Layout, Image as ImageIcon, PaintBucket, Square, EyeOff, Trash2, 
 
 interface VisualEditorProps {
   selectedElement: HTMLElement | null;
-  onUpdate: () => void; // Trigger to sync changes back to draft state
 }
 
-export const VisualEditor: React.FC<VisualEditorProps> = ({ selectedElement, onUpdate }) => {
+export const VisualEditor: React.FC<VisualEditorProps> = ({ selectedElement }) => {
   const [activeSection, setActiveSection] = useState<string | null>('content');
   
   // Force re-render when selection changes
@@ -34,19 +33,16 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ selectedElement, onU
   const updateStyle = (property: string, value: string) => {
     selectedElement.style[property as any] = value;
     setTick(t => t + 1);
-    onUpdate();
   };
 
   const updateAttribute = (attr: string, value: string) => {
     selectedElement.setAttribute(attr, value);
     setTick(t => t + 1);
-    onUpdate();
   };
 
   const updateContent = (value: string) => {
     selectedElement.innerText = value;
     setTick(t => t + 1);
-    onUpdate();
   };
 
   const SectionHeader = ({ id, icon: Icon, title }: { id: string, icon: any, title: string }) => (
@@ -335,10 +331,7 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ selectedElement, onU
                   <EyeOff size={14} /> Hide
               </button>
               <button 
-                onClick={() => {
-                    selectedElement.remove();
-                    onUpdate();
-                }}
+                onClick={() => selectedElement.remove()}
                 className="flex items-center justify-center gap-2 bg-white border border-red-100 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
               >
                   <Trash2 size={14} /> Remove

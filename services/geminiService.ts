@@ -1,13 +1,33 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { GeneratedEmail, Message, ToneOption, PersonalContext, OutputFormat, ToneSettings } from "../types";
+import { GeneratedEmail, Message, ToneOption, PersonalContext, OutputFormat, ToneSettings, VoiceFingerprint } from "../types";
 
-const getAiClient = () => {
-  const apiKey = localStorage.getItem('kindlymail_gemini_key') || process.env.API_KEY || '';
-  return new GoogleGenAI({ apiKey });
+// Robust API Key retrieval
+const getApiKey = () => {
+    // 1. User Preference (LocalStorage)
+    const local = localStorage.getItem('kindlymail_gemini_key');
+    if (local) return local;
+
+    // 2. Vite Environment Variables (Standard for Vercel/Vite deployments)
+    try {
+        // @ts-ignore
+        if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
+            // @ts-ignore
+            return import.meta.env.VITE_API_KEY;
+        }
+    } catch (e) {}
+
+    // 3. Process Environment (Node/Webpack/Preview environments)
+    try {
+        if (typeof process !== 'undefined' && process.env?.API_KEY) {
+            return process.env.API_KEY;
+        }
+    } catch (e) {}
+
+    return '';
 };
 
-const getApiKey = () => {
-    return localStorage.getItem('kindlymail_gemini_key') || process.env.API_KEY || '';
+const getAiClient = () => {
+  return new GoogleGenAI({ apiKey: getApiKey() });
 };
 
 // Helper for exponential backoff
@@ -52,8 +72,8 @@ export const generateEmailDraft = async (
 
   const ai = getAiClient();
 
-  // Using the requested Gemini 3.0 Flash model
-  const model = "gemini-3-flash-preview";
+  // Use the requested model from context or default to Gemini 3.0 Flash
+  const model = personalContext?.model || "gemini-3-flash-preview";
   
   let systemInstruction = "";
 
@@ -97,20 +117,34 @@ export const generateEmailDraft = async (
   if (personalContext || effectiveTone) {
     let overrideInstructions = "\n\nUSER OVERRIDE & PREFERENCES:";
     
-    if (personalContext?.systemInstructions) {
-        overrideInstructions += `\n${personalContext.systemInstructions}`;
+    // 1. Voice Fingerprint (High Priority)
+    if (personalContext?.voiceFingerprint) {
+        const vf = personalContext.voiceFingerprint;
+        overrideInstructions += `\n\n**MANDATORY VOICE FINGERPRINT**:`;
+        overrideInstructions += `\nThis user has a specific writing style. YOU MUST MIMIC THIS STYLE:`;
+        overrideInstructions += `\n- Keywords/Adjectives: ${vf.keywords.join(', ')}`;
+        overrideInstructions += `\n- Sentence Structure: ${vf.sentenceLength} and ${vf.structure}`;
+        overrideInstructions += `\n- Vocabulary Level: ${vf.vocabularyLevel}`;
+        overrideInstructions += `\n- Sign-off Style: ${vf.signatureStyle}`;
+        overrideInstructions += `\n- Overall Vibe: ${vf.summary}`;
     }
 
+    // 2. Manual System Instructions
+    if (personalContext?.systemInstructions) {
+        overrideInstructions += `\n\nAdditional Instructions: ${personalContext.systemInstructions}`;
+    }
+
+    // 3. Tone Settings
     if (effectiveTone) {
         const { warmth, enthusiasm, formatting, emojis } = effectiveTone;
-        overrideInstructions += "\n\nTONE & STYLE SETTINGS:";
+        overrideInstructions += "\n\nTONE MODIFIERS:";
         if (warmth !== 'Default') overrideInstructions += `\n- Warmth: ${warmth} (Adjust the friendliness and human touch accordingly)`;
         if (enthusiasm !== 'Default') overrideInstructions += `\n- Enthusiasm: ${enthusiasm} (Adjust exclamation marks and excitement accordingly)`;
         if (formatting !== 'Default') overrideInstructions += `\n- Formatting/Lists: ${formatting} (Adjust frequency of bullet points and headers)`;
         if (emojis !== 'Default') overrideInstructions += `\n- Emoji Usage: ${emojis} (Adjust frequency of emojis)`;
     }
     
-    overrideInstructions += "\n(Prioritize these user preferences over default design rules if they conflict).";
+    overrideInstructions += "\n(Prioritize the 'Voice Fingerprint' above all other tone settings).";
     systemInstruction += overrideInstructions;
   }
 
@@ -270,5 +304,58 @@ export const analyzeBrandAssets = async (url: string): Promise<BrandAssets> => {
     } catch (e) {
         console.error("Brand analysis failed", e);
         return { colors: ['#000000'], fonts: ['Sans-serif'] };
+    }
+};
+
+export const analyzeBrandVoice = async (emails: string[]): Promise<VoiceFingerprint> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = getAiClient();
+
+    const combinedText = emails.join("\n\n--- NEXT EMAIL ---\n\n");
+
+    const prompt = `Analyze the following email samples written by a specific person. 
+    Construct a precise "Voice Fingerprint" that describes their writing style so an AI can mimic it perfectly.
+    
+    SAMPLES:
+    ${combinedText}
+    
+    Analyze:
+    1. Keywords/Adjectives (e.g., 'Direct', 'Witty', 'Empathetic')
+    2. Sentence Length (e.g., 'Short and punchy', 'Long and descriptive')
+    3. Structure (e.g., 'Uses bullet points often', 'Dense paragraphs')
+    4. Vocabulary Level (e.g., 'Simple/Accessible', 'Technical/Jargon-heavy')
+    5. Signature Style (e.g., 'Cheers', 'Best regards', 'No sign-off')
+    6. Summary (A 1-sentence vibe check)
+    
+    Return JSON only.`;
+
+    try {
+        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        sentenceLength: { type: Type.STRING },
+                        structure: { type: Type.STRING },
+                        vocabularyLevel: { type: Type.STRING },
+                        signatureStyle: { type: Type.STRING },
+                        summary: { type: Type.STRING }
+                    },
+                    required: ["keywords", "sentenceLength", "structure", "vocabularyLevel", "signatureStyle", "summary"]
+                }
+            }
+        }));
+
+        const text = response.text;
+        if (!text) throw new Error("No response");
+        return JSON.parse(text) as VoiceFingerprint;
+    } catch (e) {
+        console.error("Voice analysis failed", e);
+        throw e;
     }
 };

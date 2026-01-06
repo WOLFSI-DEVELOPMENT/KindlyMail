@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { HomeView } from './components/HomeView';
-import { WorkspaceView } from './components/GeneratedResult';
-import { TemplatesView } from './components/TemplatesView';
-import { SettingsView } from './components/SettingsView';
-import { CreationsView } from './components/CreationsView';
-import { LandingPage } from './components/LandingPage';
-import { LoginPage } from './components/LoginPage';
-import { BrandAssetsView } from './components/BrandAssetsView';
-import { LegalView } from './components/LegalView';
-import { CommunityView } from './components/CommunityView'; // Import Community
-import { OnboardingFlow, OnboardingData } from './components/OnboardingFlow';
-import { UserProfileModal } from './components/UserProfileModal'; // Import Modal
-import { EmailState, ToneOption, Message, PersonalContext, GeneratedEmail, Creation, Template } from './types';
-import { generateEmailDraft } from './services/geminiService';
-import { supabase, publishCreation, CommunityCreation, signOut } from './services/supabase'; // Import Supabase
+import { HomeView } from './HomeView';
+import { WorkspaceView } from './GeneratedResult';
+import { TemplatesView } from './TemplatesView';
+import { SettingsView } from './SettingsView';
+import { CreationsView } from './CreationsView';
+import { CommunityView } from './CommunityView';
+import { UserProfileModal } from './UserProfileModal'; 
+import { LandingPage } from './LandingPage';
+import { LoginPage } from './LoginPage';
+import { BrandAssetsView } from './BrandAssetsView';
+import { LegalView } from './LegalView';
+import { OnboardingFlow, OnboardingData } from './OnboardingFlow';
+import { EmailState, ToneOption, Message, PersonalContext, GeneratedEmail, Creation, Template, OutputFormat, ToneSettings } from '../types';
+import { generateEmailDraft } from '../services/geminiService';
+import { supabase, publishCreation, CommunityCreation, signOut } from '../services/supabase'; 
 import { Home, FolderHeart, Settings, Heart, LayoutTemplate, PanelLeftClose, PanelLeftOpen, Users, LogOut, User } from 'lucide-react';
 
 export default function App() {
@@ -37,7 +37,8 @@ export default function App() {
       enthusiasm: 'Default',
       formatting: 'Default',
       emojis: 'Default'
-    }
+    },
+    model: 'gemini-3-flash-preview'
   });
 
   // Derived state from onboarding to pass down to HomeView
@@ -141,8 +142,8 @@ export default function App() {
       <LandingPage 
         onGetStarted={() => setView('login')} 
         onLogin={() => setView('login')}
-        onNavigate={(page) => setView(page)}
-        onLoadTemplate={(template) => {
+        onNavigate={(page: any) => setView(page)}
+        onLoadTemplate={(template: Template) => {
             // Load template and jump straight to editor
             // If logged in go to app, else go to login then app
             if (session) {
@@ -175,16 +176,19 @@ export default function App() {
   if (view === 'login') {
     return (
       <LoginPage 
+        // @ts-ignore
         onBack={() => setView('landing')}
       />
     );
   }
 
   if (view === 'brand-assets') {
+      // @ts-ignore
       return <BrandAssetsView onBack={() => setView('landing')} />;
   }
 
   if (view === 'legal') {
+      // @ts-ignore
       return <LegalView onBack={() => setView('landing')} />;
   }
 

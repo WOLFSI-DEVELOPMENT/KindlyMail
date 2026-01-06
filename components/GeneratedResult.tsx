@@ -51,7 +51,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     if (chatContainerRef.current) {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isGenerating]); // Scroll when generating starts too
 
   // Handle click outside for export menu
   useEffect(() => {
@@ -145,31 +145,39 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   };
 
   // Sync editor changes back to draft state
-  const handleEditorUpdate = () => {
+  const getLatestHtmlFromIframe = (): string | null => {
       if (iframeRef.current?.contentDocument) {
-          // Serialize the current DOM state to the draft body
-          // We must clone it to avoid removing the selection classes in the live view
-          // But actually we DO want to remove selection classes from the saved HTML
-          
           const doc = iframeRef.current.contentDocument;
           
           // Temporary cleanup for serialization
           const prevSelection = doc.querySelector('.kindly-selected');
           if (prevSelection) prevSelection.classList.remove('kindly-selected');
+          const hoverSelection = doc.querySelector('.kindly-hover');
+          if (hoverSelection) hoverSelection.classList.remove('kindly-hover');
           
           // Remove injected style tag from serialization if possible
           const styleTag = doc.getElementById('kindly-editor-styles');
           const styleContent = styleTag?.textContent;
-          if (styleTag) styleTag.textContent = ''; // Clear it momentarily
+          if (styleTag) styleTag.textContent = ''; 
 
           const newHtml = doc.documentElement.outerHTML;
           
           // Restore
           if (prevSelection) prevSelection.classList.add('kindly-selected');
+          if (hoverSelection) hoverSelection.classList.add('kindly-hover');
           if (styleTag && styleContent) styleTag.textContent = styleContent;
 
-          setDraft(prev => ({ ...prev, body: newHtml }));
+          return newHtml;
       }
+      return null;
+  };
+
+  const syncEditorChanges = () => {
+      const newBody = getLatestHtmlFromIframe();
+      if (newBody) {
+          setDraft(prev => ({ ...prev, body: newBody }));
+      }
+      return newBody;
   };
   
   // Re-inject styles if mode changes to editor
@@ -190,6 +198,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
   const handleSend = () => {
     if (prompt.trim()) {
+        if (sidebarMode === 'editor') syncEditorChanges();
         onRefine(prompt);
         setPrompt('');
     }
@@ -204,7 +213,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
   const handleCopyCode = async () => {
     try {
-      await navigator.clipboard.writeText(draft.body);
+      let content = draft.body;
+      if (sidebarMode === 'editor') {
+          const synced = syncEditorChanges();
+          if (synced) content = synced;
+      }
+      await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -213,7 +227,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   };
 
   const handleDownloadHtml = () => {
-    const blob = new Blob([draft.body], { type: 'text/html' });
+    let content = draft.body;
+    if (sidebarMode === 'editor') {
+        const synced = syncEditorChanges();
+        if (synced) content = synced;
+    }
+    const blob = new Blob([content], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -229,8 +248,13 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     if (onSave) {
         setIsSaving(true);
         // Ensure we save the latest visual edits
-        if (sidebarMode === 'editor') handleEditorUpdate();
-        onSave(draft);
+        let bodyToSave = draft.body;
+        if (sidebarMode === 'editor') {
+            const synced = syncEditorChanges();
+            if (synced) bodyToSave = synced;
+        }
+        
+        onSave({ ...draft, body: bodyToSave });
         setTimeout(() => setIsSaving(false), 1000); // Visual feedback duration
     }
   };
@@ -238,8 +262,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const handlePublish = () => {
     if (onPublish) {
         setIsPublishing(true);
-        if (sidebarMode === 'editor') handleEditorUpdate();
-        onPublish(draft);
+        let bodyToPublish = draft.body;
+        if (sidebarMode === 'editor') {
+            const synced = syncEditorChanges();
+            if (synced) bodyToPublish = synced;
+        }
+        onPublish({ ...draft, body: bodyToPublish });
         setTimeout(() => setIsPublishing(false), 1000);
     }
   };
@@ -264,7 +292,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             {/* Mode Toggle Tabs */}
             <div className="flex p-2 gap-1 bg-stone-50 border-b border-stone-100">
                 <button 
-                    onClick={() => setSidebarMode('chat')}
+                    onClick={() => {
+                        if (sidebarMode === 'editor') syncEditorChanges();
+                        setSidebarMode('chat');
+                    }}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${sidebarMode === 'chat' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500 hover:bg-stone-100'}`}
                 >
                     <MessageSquare size={16} /> AI Chat
@@ -297,13 +328,17 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                             </span>
                         </div>
                     ))}
+                    
+                    {/* Skeleton Loading State */}
                     {isGenerating && (
-                        <div className="flex items-start gap-2 animate-pulse">
-                            <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center">
+                        <div className="flex items-start gap-2">
+                            <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center shrink-0">
                                 <div className="w-4 h-4 border-2 border-stone-300 border-t-stone-500 rounded-full animate-spin"></div>
                             </div>
-                            <div className="bg-stone-50 border border-stone-100 px-4 py-3 rounded-2xl rounded-bl-sm text-sm text-stone-400 shadow-sm">
-                                Generating...
+                            <div className="bg-stone-50 border border-stone-100 p-4 rounded-2xl rounded-bl-sm shadow-sm w-3/4 space-y-2">
+                                <div className="h-2 bg-stone-200 rounded-full w-full animate-pulse"></div>
+                                <div className="h-2 bg-stone-200 rounded-full w-5/6 animate-pulse delay-75"></div>
+                                <div className="h-2 bg-stone-200 rounded-full w-3/4 animate-pulse delay-150"></div>
                             </div>
                         </div>
                     )}
@@ -341,7 +376,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         {sidebarMode === 'editor' && (
             <VisualEditor 
                 selectedElement={selectedElement}
-                onUpdate={handleEditorUpdate}
             />
         )}
       </div>

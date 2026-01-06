@@ -1,9 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, X, FileText, Image as ImageIcon, FileCode, File, Trash2, Cpu, ChevronDown, Check, Copy, Key } from 'lucide-react';
-import { UploadedFile, PersonalContext, ToneSettings } from '../types';
+import { Upload, X, FileText, Image as ImageIcon, FileCode, File, Trash2, Cpu, ChevronDown, Check, Copy, Key, Mic2, Sparkles, RefreshCw } from 'lucide-react';
+import { UploadedFile, PersonalContext, ToneSettings, VoiceFingerprint } from '../types';
 import { ContextVisualizer } from './ContextVisualizer';
-import { TextArea, Input } from './ui/Input'; // Assuming Input export exists or we add it
+import { TextArea, Input } from './ui/Input'; 
 import { Button } from './ui/Button';
+import { analyzeBrandVoice } from '../services/geminiService';
 
 interface SettingsViewProps {
   context: PersonalContext;
@@ -37,12 +38,12 @@ const ToneDropdown: React.FC<{
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-2 text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium"
         >
-          {value}
+          {options.find(o => o.value === value)?.label || value}
           <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-stone-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+          <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-stone-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
              {options.map((opt) => (
                <button
                  key={opt.value}
@@ -73,6 +74,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateCon
   const [dragActive, setDragActive] = useState(false);
   const [apiKey, setApiKey] = useState(localStorage.getItem('kindlymail_gemini_key') || '');
   const [showKey, setShowKey] = useState(false);
+  
+  // Voice Scanner State
+  const [voiceInput, setVoiceInput] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
@@ -174,6 +180,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateCon
     });
   };
 
+  const updateModel = (val: string) => {
+      onUpdateContext({
+          ...context,
+          model: val
+      });
+  };
+
+  const handleScanVoice = async () => {
+      if (!voiceInput.trim()) return;
+      setIsScanning(true);
+      try {
+          const emails = voiceInput.split('\n\n').filter(e => e.trim().length > 0);
+          const fingerprint = await analyzeBrandVoice(emails);
+          onUpdateContext({
+              ...context,
+              voiceFingerprint: fingerprint
+          });
+          setScannerOpen(false);
+          setVoiceInput('');
+      } catch (e) {
+          alert("Failed to analyze voice. Please check API Key and try again.");
+      }
+      setIsScanning(false);
+  };
+
   const getFileIcon = (type: string) => {
     if (type.includes('image')) return <ImageIcon size={18} className="text-pink-500" />;
     if (type.includes('pdf')) return <FileText size={18} className="text-red-500" />;
@@ -199,7 +230,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateCon
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
         
         {/* Left Column: Controls (Scrollable) */}
-        {/* Added 'scroll-smooth' and 'overscroll-contain' for better scrolling feel */}
         <div className="w-full lg:w-1/2 h-full overflow-y-auto p-6 lg:p-8 custom-scrollbar space-y-8 pb-20 scroll-smooth overscroll-contain">
             
             {/* API Key Section */}
@@ -229,12 +259,118 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateCon
                             {showKey ? "HIDE" : "SHOW"}
                         </button>
                     </div>
-                    <div className="mt-3 flex justify-between items-center">
+                    
+                    {/* Model Selector */}
+                    <div className="mt-6 pt-6 border-t border-stone-100">
+                        <ToneDropdown 
+                            label="AI Model"
+                            value={context.model || 'gemini-3-flash-preview'}
+                            options={[
+                                { label: 'Gemini 3.0 Flash', value: 'gemini-3-flash-preview', description: 'Recommended: Fast and intelligent' },
+                                { label: 'Gemini 3.0 Pro', value: 'gemini-3-pro-preview', description: 'Best for complex reasoning' },
+                                { label: 'Gemini 2.0 Flash', value: 'gemini-2.0-flash', description: 'Standard 2.0 model' },
+                                { label: 'Gemini 2.0 Pro', value: 'gemini-2.0-pro-exp-02-05', description: 'Experimental 2.0 Pro' },
+                                { label: 'Gemini 2.0 Flash Lite', value: 'gemini-2.0-flash-lite-preview-02-05', description: 'Cost effective and fast' },
+                            ]}
+                            onChange={updateModel}
+                        />
+                    </div>
+
+                    <div className="mt-6 flex justify-between items-center">
                         <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline">
                             Get API Key →
                         </a>
                         {apiKey && <span className="text-xs text-green-600 font-bold flex items-center gap-1"><Check size={12} /> Saved</span>}
                     </div>
+                </div>
+            </div>
+
+            {/* Brand Voice Scanner (NEW) */}
+            <div className="space-y-4">
+                <div>
+                   <label className="text-sm font-bold text-stone-900 uppercase tracking-wide flex items-center gap-2">
+                        <Mic2 size={14} className="text-pink-500" />
+                        Brand Voice Scanner
+                   </label>
+                   <p className="text-xs text-stone-500 mt-1">
+                      Paste examples of your past emails to create a unique "Tone Fingerprint".
+                   </p>
+                </div>
+
+                <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-stone-200 relative overflow-hidden">
+                    {context.voiceFingerprint ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-2">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-2 text-green-600 font-bold text-sm bg-green-50 px-3 py-1 rounded-full">
+                                    <Sparkles size={14} /> Voice Active
+                                </div>
+                                <button 
+                                    onClick={() => onUpdateContext({...context, voiceFingerprint: undefined})}
+                                    className="text-xs text-stone-400 hover:text-red-500 flex items-center gap-1"
+                                >
+                                    <Trash2 size={12} /> Reset
+                                </button>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <div className="p-3 bg-stone-50 rounded-xl border border-stone-100">
+                                    <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wide block mb-1">Summary</span>
+                                    <p className="text-sm text-stone-800 leading-relaxed font-medium">"{context.voiceFingerprint.summary}"</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 bg-stone-50 rounded-xl border border-stone-100">
+                                        <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wide block mb-1">Keywords</span>
+                                        <div className="flex flex-wrap gap-1">
+                                            {context.voiceFingerprint.keywords.map(k => (
+                                                <span key={k} className="text-[10px] bg-white border border-stone-200 px-1.5 py-0.5 rounded text-stone-600">{k}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-stone-50 rounded-xl border border-stone-100">
+                                        <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wide block mb-1">Signature</span>
+                                        <p className="text-xs text-stone-700">{context.voiceFingerprint.signatureStyle}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-6">
+                            <div className="w-12 h-12 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-4 text-stone-400">
+                                <FileText size={24} />
+                            </div>
+                            <h3 className="font-bold text-stone-900 mb-2">No Voice Detected</h3>
+                            <p className="text-xs text-stone-500 mb-6 max-w-xs mx-auto">
+                                KindlyMail is using generic defaults. Scan your previous emails to personalize the output.
+                            </p>
+                            <Button onClick={() => setScannerOpen(true)} className="w-full">
+                                <Sparkles size={16} className="mr-2" /> Start Voice Scan
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Scanner Modal Overlay */}
+                    {scannerOpen && (
+                        <div className="absolute inset-0 bg-white z-10 flex flex-col p-6 animate-in slide-in-from-bottom-10 duration-300">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-stone-900">Paste 3+ Past Emails</h3>
+                                <button onClick={() => setScannerOpen(false)} className="text-stone-400 hover:text-stone-900"><X size={20}/></button>
+                            </div>
+                            <textarea 
+                                value={voiceInput}
+                                onChange={(e) => setVoiceInput(e.target.value)}
+                                placeholder={`Subject: Hi there\nBody: Just checking in on...\n\n---\n\nSubject: Follow up\nBody: ...`}
+                                className="flex-1 bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black/5 mb-4"
+                            />
+                            <Button 
+                                onClick={handleScanVoice}
+                                isLoading={isScanning}
+                                disabled={!voiceInput.trim() || isScanning}
+                                className="w-full"
+                            >
+                                Analyze Tone
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
 
