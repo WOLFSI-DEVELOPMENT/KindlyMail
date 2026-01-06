@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { Download, ArrowLeft, Heart, MousePointer2, BarChart3, Users, MessageSquare, Sliders, Layout, Zap, FileText, Copy, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-interface BrandAssetsViewProps {
-  onBack: () => void;
-}
-
-export const BrandAssetsView: React.FC<BrandAssetsViewProps> = ({ onBack }) => {
+export const BrandAssetsView: React.FC = () => {
+  const navigate = useNavigate();
   
   const handleDownloadLogo = (theme: 'light' | 'dark') => {
     const link = document.createElement('a');
@@ -26,11 +24,11 @@ export const BrandAssetsView: React.FC<BrandAssetsViewProps> = ({ onBack }) => {
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={onBack}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
             <img src="https://iili.io/fNbamD7.md.png" alt="KindlyMail Logo" className="w-8 h-8 rounded-lg shadow-sm" />
             <span className="font-bold text-xl tracking-tight text-black">KindlyMail</span>
           </div>
-          <button onClick={onBack} className="flex items-center gap-2 text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors">
             <ArrowLeft size={16} /> Back to Home
           </button>
         </div>

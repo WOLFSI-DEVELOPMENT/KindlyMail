@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, ChevronLeft, Monitor, Smartphone, ArrowUp, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { TEMPLATES } from '../data/templates';
 import { Template } from '../types';
 
 interface LandingPageProps {
-  onGetStarted: () => void;
-  onLogin: () => void;
-  onLoadTemplate: (template: Template) => void;
-  onNavigate: (page: 'brand-assets' | 'legal') => void;
+  onLoadTemplate?: (template: Template) => void;
 }
 
 const TypingAnimation = () => {
@@ -105,7 +103,8 @@ const TypingAnimation = () => {
   );
 };
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onLoadTemplate, onNavigate }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLoadTemplate }) => {
+  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
 
@@ -116,6 +115,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleTemplateClick = (template: Template) => {
+    // For now, redirect to login to ensure they are authenticated
+    navigate('/login');
+  };
 
   return (
     <div className="min-h-screen bg-white font-sans text-stone-900 selection:bg-stone-900 selection:text-white overflow-x-hidden">
@@ -136,13 +140,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
 
           <div className="flex items-center gap-4">
             <button 
-                onClick={onLogin} 
+                onClick={() => navigate('/login')} 
                 className="text-sm font-medium text-stone-600 hover:text-black transition-colors"
             >
                 Log in
             </button>
             <button 
-                onClick={onGetStarted} 
+                onClick={() => navigate('/login')} 
                 className="bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-stone-800 transition-colors"
             >
                 Get Started
@@ -173,7 +177,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24">
             <button 
-                onClick={onGetStarted} 
+                onClick={() => navigate('/login')} 
                 className="h-12 px-8 rounded-full bg-black text-white font-medium hover:bg-stone-800 transition-all text-base"
             >
               Start Building Free
@@ -294,7 +298,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                     <div 
                         key={`${template.id}-${idx}`}
                         className="relative group w-[280px] h-[500px] bg-white rounded-[2rem] shadow-xl shadow-stone-200 border border-stone-200 overflow-hidden cursor-pointer hover:-translate-y-4 hover:shadow-2xl transition-all duration-300"
-                        onClick={() => onLoadTemplate(template)}
+                        onClick={() => handleTemplateClick(template)}
                     >
                         {/* Preview Iframe */}
                         <div className="absolute inset-0 w-full h-full pointer-events-none">
@@ -346,7 +350,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                               <CheckCircle2 size={16} className="text-black" /> Basic Templates
                           </li>
                       </ul>
-                      <button onClick={onGetStarted} className="w-full py-3 border border-stone-200 rounded-lg font-medium hover:border-black transition-colors text-sm">
+                      <button onClick={() => navigate('/login')} className="w-full py-3 border border-stone-200 rounded-lg font-medium hover:border-black transition-colors text-sm">
                           Get Started
                       </button>
                   </div>
@@ -446,9 +450,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
 
               <div className="flex gap-8 text-sm font-medium text-stone-400">
                   <a href="#" className="hover:text-white transition-colors">Twitter</a>
-                  <button onClick={() => onNavigate('brand-assets')} className="hover:text-white transition-colors">Brand Assets</button>
-                  <button onClick={() => onNavigate('legal')} className="hover:text-white transition-colors">Legal</button>
-                  <button onClick={() => onNavigate('legal')} className="hover:text-white transition-colors">Privacy</button>
+                  <button onClick={() => navigate('/brand-assets')} className="hover:text-white transition-colors">Brand Assets</button>
+                  <button onClick={() => navigate('/legal')} className="hover:text-white transition-colors">Legal</button>
+                  <button onClick={() => navigate('/legal')} className="hover:text-white transition-colors">Privacy</button>
               </div>
           </div>
       </footer>

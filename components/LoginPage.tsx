@@ -1,30 +1,41 @@
 import React, { useState } from 'react';
-import { Heart, ArrowLeft, Loader2, Mail } from 'lucide-react';
+import { Heart, ArrowLeft, Loader2, Mail, Lock, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { signInWithMagicLink, signInWithGoogle } from '../services/supabase';
+import { signInWithGoogle, signInWithEmailPassword, signUpWithEmailPassword } from '../services/supabase';
 
-interface LoginPageProps {
-  onBack: () => void;
-}
-
-export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
+export const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  const handleMagicLink = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
 
-    const { error } = await signInWithMagicLink(email);
-    
-    setIsLoading(false);
-    if (error) {
-      setMessage({ type: 'error', text: error.message });
+    if (isSignUp) {
+        const { error } = await signUpWithEmailPassword(email, password);
+        setIsLoading(false);
+        if (error) {
+            setMessage({ type: 'error', text: error.message });
+        } else {
+            setMessage({ type: 'success', text: 'Account created! Please check your email to confirm.' });
+            setIsSignUp(false);
+        }
     } else {
-      setMessage({ type: 'success', text: 'Check your email for the login link!' });
+        const { data, error } = await signInWithEmailPassword(email, password);
+        setIsLoading(false);
+        if (error) {
+            setMessage({ type: 'error', text: error.message });
+        } else {
+            // Success - Redirect to App, which will handle onboarding check
+            navigate('/app');
+        }
     }
   };
 
@@ -43,7 +54,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
       {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col p-8 sm:p-12 lg:p-20 relative">
         <button 
-            onClick={onBack}
+            onClick={() => navigate('/')}
             className="absolute top-8 left-8 text-stone-400 hover:text-stone-900 transition-colors flex items-center gap-2 text-sm font-medium"
         >
             <ArrowLeft size={16} /> Back to Home
@@ -55,8 +66,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
                 <span className="font-display font-bold text-2xl tracking-tight">KindlyMail</span>
             </div>
 
-            <h1 className="font-display text-4xl font-bold text-stone-900 mb-2">Welcome back</h1>
-            <p className="text-stone-500 mb-10">Enter your email to access your workspace.</p>
+            <h1 className="font-display text-4xl font-bold text-stone-900 mb-2">
+                {isSignUp ? 'Create Account' : 'Welcome back'}
+            </h1>
+            <p className="text-stone-500 mb-10">
+                {isSignUp ? 'Get started with your free account.' : 'Enter your details to access your workspace.'}
+            </p>
 
             {message && (
                 <div className={`p-4 rounded-xl mb-6 text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
@@ -64,7 +79,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
                 </div>
             )}
 
-            <form onSubmit={handleMagicLink} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
                 <Input 
                     label="Email" 
                     type="email" 
@@ -75,9 +90,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
                     disabled={isLoading}
                 />
                 
+                <div className="space-y-2">
+                    <Input 
+                        label="Password" 
+                        type="password" 
+                        placeholder="••••••••" 
+                        required 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                    />
+                </div>
+                
                 <Button type="submit" className="w-full !py-4 text-base" isLoading={isLoading} disabled={isLoading}>
-                    <Mail size={18} className="mr-2" />
-                    Send Magic Link
+                    {isSignUp ? <User size={18} className="mr-2" /> : <Lock size={18} className="mr-2" />}
+                    {isSignUp ? 'Sign Up' : 'Sign In'}
                 </Button>
             </form>
             
@@ -99,6 +126,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
                 Sign in with Google
             </button>
+
+            <div className="mt-8 text-center text-sm">
+                <span className="text-stone-500">
+                    {isSignUp ? "Already have an account? " : "Don't have an account? "}
+                </span>
+                <button 
+                    type="button"
+                    onClick={() => {
+                        setIsSignUp(!isSignUp);
+                        setMessage(null);
+                        setEmail('');
+                        setPassword('');
+                    }}
+                    className="font-bold text-stone-900 hover:underline"
+                >
+                    {isSignUp ? "Sign In" : "Sign Up"}
+                </button>
+            </div>
         </div>
         
         <div className="mt-auto pt-6 text-xs text-stone-400">

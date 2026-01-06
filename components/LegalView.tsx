@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { Heart, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-interface LegalViewProps {
-  onBack: () => void;
-}
-
-export const LegalView: React.FC<LegalViewProps> = ({ onBack }) => {
+export const LegalView: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms'>('privacy');
 
   return (
@@ -14,13 +12,13 @@ export const LegalView: React.FC<LegalViewProps> = ({ onBack }) => {
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={onBack}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
                <Heart size={16} fill="white" />
             </div>
             <span className="font-bold text-xl tracking-tight text-black">KindlyMail</span>
           </div>
-          <button onClick={onBack} className="flex items-center gap-2 text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors">
             <ArrowLeft size={16} /> Back to Home
           </button>
         </div>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowRight, Globe, Loader2, Check, ArrowLeft, Plus, Search, Twitter, Users, HelpCircle, Palette, FileEdit, Layout } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { analyzeBrandAssets, BrandAssets } from '../services/geminiService';
 
 interface OnboardingFlowProps {
-  onComplete: (data: OnboardingData) => void;
+  onComplete?: (data: OnboardingData) => void;
 }
 
 export interface OnboardingData {
@@ -15,7 +16,8 @@ export interface OnboardingData {
   action: 'template' | 'blank';
 }
 
-export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
+export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: '',
@@ -29,6 +31,12 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
 
   const handleNext = () => setStep(prev => prev + 1);
   const handleBack = () => setStep(prev => prev - 1);
+
+  const handleComplete = (finalData: OnboardingData) => {
+      localStorage.setItem('kindlymail_onboarded', 'true');
+      // In a real app we would persist this data to the user profile here
+      navigate('/app');
+  };
 
   const handleWebsiteSubmit = async () => {
     if (!data.websiteUrl) return;
@@ -245,7 +253,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
                     <button 
                         onClick={() => {
                             const finalData = { ...data, action: 'template' as const };
-                            onComplete(finalData);
+                            handleComplete(finalData);
                         }}
                         className="group flex flex-col items-center justify-center p-10 bg-white border border-stone-200 rounded-[2rem] hover:shadow-xl hover:border-stone-300 hover:-translate-y-1 transition-all duration-300"
                     >
@@ -259,7 +267,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
                     <button 
                         onClick={() => {
                             const finalData = { ...data, action: 'blank' as const };
-                            onComplete(finalData);
+                            handleComplete(finalData);
                         }}
                         className="group flex flex-col items-center justify-center p-10 bg-white border border-stone-200 rounded-[2rem] hover:shadow-xl hover:border-stone-300 hover:-translate-y-1 transition-all duration-300"
                     >
