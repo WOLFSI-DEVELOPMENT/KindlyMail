@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/Button';
 import { Message, GeneratedEmail } from '../types';
-import { ArrowUp, ChevronLeft, Download, Eye, Layout, Monitor, Moon, Share2, Smartphone, Copy, FileCode, Check, Save, MessageSquare, Edit3 } from 'lucide-react';
+import { ArrowUp, ChevronLeft, Download, Eye, Layout, Monitor, Moon, Share2, Smartphone, Copy, FileCode, Check, Save, MessageSquare, Edit3, Globe } from 'lucide-react';
 import { ShareModal } from './ShareModal';
 import { VisualEditor } from './VisualEditor';
 
@@ -12,6 +12,7 @@ interface WorkspaceViewProps {
   isGenerating: boolean;
   onBack: () => void;
   onSave?: (draft: GeneratedEmail) => void;
+  onPublish?: (draft: GeneratedEmail) => void;
 }
 
 export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ 
@@ -20,13 +21,15 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   onRefine, 
   isGenerating,
   onBack,
-  onSave
+  onSave,
+  onPublish
 }) => {
   const [draft, setDraft] = useState<GeneratedEmail>(initialDraft);
   const [prompt, setPrompt] = useState('');
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   
   // Sidebar Modes: 'chat' | 'editor'
   const [sidebarMode, setSidebarMode] = useState<'chat' | 'editor'>('chat');
@@ -232,6 +235,15 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     }
   };
 
+  const handlePublish = () => {
+    if (onPublish) {
+        setIsPublishing(true);
+        if (sidebarMode === 'editor') handleEditorUpdate();
+        onPublish(draft);
+        setTimeout(() => setIsPublishing(false), 1000);
+    }
+  };
+
   return (
     <div className="flex h-full bg-stone-50 overflow-hidden font-sans">
       
@@ -367,9 +379,21 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         disabled={isSaving}
                     >
                         {isSaving ? <Check size={14} className="mr-2" /> : <Save size={14} className="mr-2" />} 
-                        {isSaving ? 'Saved' : 'Save'}
+                        {isSaving ? 'Saved' : 'Save Draft'}
                     </Button>
                   )}
+                  {onPublish && (
+                    <Button 
+                        variant="secondary" 
+                        className="!py-2 !px-4 text-xs bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700" 
+                        onClick={handlePublish}
+                        disabled={isPublishing}
+                    >
+                        {isPublishing ? <Check size={14} className="mr-2" /> : <Globe size={14} className="mr-2" />} 
+                        {isPublishing ? 'Published' : 'Publish'}
+                    </Button>
+                  )}
+
                   <Button variant="ghost" className="!p-2">
                       <Eye size={18} />
                   </Button>

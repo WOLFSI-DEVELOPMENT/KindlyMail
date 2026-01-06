@@ -1,20 +1,40 @@
-import React from 'react';
-import { Heart, ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, ArrowLeft, Loader2, Mail } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { signInWithMagicLink, signInWithGoogle } from '../services/supabase';
 
 interface LoginPageProps {
-  onLoginSuccess: () => void;
   onBack: () => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) => {
-  const handleSubmit = (e: React.FormEvent) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate login
-    setTimeout(() => {
-        onLoginSuccess();
-    }, 800);
+    setIsLoading(true);
+    setMessage(null);
+
+    const { error } = await signInWithMagicLink(email);
+    
+    setIsLoading(false);
+    if (error) {
+      setMessage({ type: 'error', text: error.message });
+    } else {
+      setMessage({ type: 'success', text: 'Check your email for the login link!' });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+       setIsLoading(false);
+       setMessage({ type: 'error', text: error.message });
+    }
   };
 
   return (
@@ -36,21 +56,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
             </div>
 
             <h1 className="font-display text-4xl font-bold text-stone-900 mb-2">Welcome back</h1>
-            <p className="text-stone-500 mb-10">Enter your details to access your workspace.</p>
+            <p className="text-stone-500 mb-10">Enter your email to access your workspace.</p>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-                <Input label="Email" type="email" placeholder="name@company.com" required />
-                <Input label="Password" type="password" placeholder="••••••••" required />
-                
-                <div className="flex justify-between items-center text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer text-stone-600">
-                        <input type="checkbox" className="rounded border-stone-300 text-black focus:ring-black" />
-                        Remember me
-                    </label>
-                    <a href="#" className="text-stone-900 font-medium hover:underline">Forgot password?</a>
+            {message && (
+                <div className={`p-4 rounded-xl mb-6 text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                    {message.text}
                 </div>
+            )}
 
-                <Button type="submit" className="w-full !py-4 text-base">Sign In</Button>
+            <form onSubmit={handleMagicLink} className="space-y-5">
+                <Input 
+                    label="Email" 
+                    type="email" 
+                    placeholder="name@company.com" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                />
+                
+                <Button type="submit" className="w-full !py-4 text-base" isLoading={isLoading} disabled={isLoading}>
+                    <Mail size={18} className="mr-2" />
+                    Send Magic Link
+                </Button>
             </form>
             
             <div className="relative my-8">
@@ -64,20 +92,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
             <button 
                 type="button"
-                onClick={() => onLoginSuccess()} // Shortcut for demo
-                className="w-full flex items-center justify-center gap-3 bg-stone-50 border border-stone-200 text-stone-900 font-medium py-3.5 rounded-full hover:bg-stone-100 transition-all"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-3 bg-stone-50 border border-stone-200 text-stone-900 font-medium py-3.5 rounded-full hover:bg-stone-100 transition-all disabled:opacity-50"
             >
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
                 Sign in with Google
             </button>
-
-            <p className="text-center mt-10 text-sm text-stone-500">
-                Don't have an account? <a href="#" onClick={(e) => { e.preventDefault(); onLoginSuccess(); }} className="text-stone-900 font-bold hover:underline">Sign up for free</a>
-            </p>
         </div>
         
         <div className="mt-auto pt-6 text-xs text-stone-400">
-            © 2024 KindlyMail AI Inc. Privacy Policy & Terms.
+            © 2026 KindlyMail AI Inc. Privacy Policy & Terms.
         </div>
       </div>
 
@@ -89,23 +114,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20"></div>
 
          <div className="relative z-10 max-w-lg">
-             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-10 shadow-2xl">
-                 <div className="flex gap-1 mb-6">
-                    <Heart className="text-pink-400 fill-pink-400" size={24} />
-                    <Heart className="text-pink-400 fill-pink-400" size={24} />
+             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-12 shadow-2xl text-center">
+                 <div className="flex justify-center gap-1 mb-8">
                     <Heart className="text-pink-400 fill-pink-400" size={24} />
                  </div>
-                 <h2 className="text-3xl font-display font-bold text-white mb-6 leading-tight">
-                    "KindlyMail changed how our design team works. We ship 10x faster now."
+                 <h2 className="text-3xl font-display font-medium text-white mb-8 leading-tight italic">
+                    "Design is the silent ambassador of your brand."
                  </h2>
-                 <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 bg-white rounded-full overflow-hidden border-2 border-white/20">
-                         <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="User" className="w-full h-full object-cover" />
-                     </div>
-                     <div>
-                         <div className="text-white font-bold">Sarah Jenkins</div>
-                         <div className="text-white/60 text-sm">Product Designer @ Linear</div>
-                     </div>
+                 <div className="flex flex-col items-center gap-2">
+                     <div className="w-12 h-1 bg-white/20 rounded-full"></div>
+                     <div className="text-white font-bold tracking-wide uppercase text-sm">Paul Rand</div>
+                     <div className="text-white/60 text-xs">Modernist Graphic Designer</div>
                  </div>
              </div>
          </div>

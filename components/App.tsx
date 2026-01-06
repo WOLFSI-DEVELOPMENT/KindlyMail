@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HomeView } from './components/HomeView';
 import { WorkspaceView } from './components/GeneratedResult';
 import { TemplatesView } from './components/TemplatesView';
@@ -8,10 +8,12 @@ import { LandingPage } from './components/LandingPage';
 import { LoginPage } from './components/LoginPage';
 import { BrandAssetsView } from './components/BrandAssetsView';
 import { LegalView } from './components/LegalView';
-import { OnboardingFlow, OnboardingData } from './components/OnboardingFlow'; // Import Onboarding
+import { CommunityView } from './components/CommunityView'; // Import Community
+import { OnboardingFlow, OnboardingData } from './components/OnboardingFlow';
 import { EmailState, ToneOption, Message, PersonalContext, GeneratedEmail, Creation, Template } from './types';
 import { generateEmailDraft } from './services/geminiService';
-import { Home, FolderHeart, Settings, Heart, LayoutTemplate, PanelLeftClose, PanelLeftOpen, Users } from 'lucide-react';
+import { supabase, publishCreation, CommunityCreation, signOut } from './services/supabase'; // Import Supabase
+import { Home, FolderHeart, Settings, Heart, LayoutTemplate, PanelLeftClose, PanelLeftOpen, Users, LogOut } from 'lucide-react';
 
 export default function App() {
   // Navigation State
@@ -21,6 +23,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'templates' | 'creations' | 'settings' | 'community'>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
+  // Auth State
+  const [session, setSession] = useState<any>(null);
+
   // Settings / Context State
   const [personalContext, setPersonalContext] = useState<PersonalContext>({
     systemInstructions: '',
@@ -50,6 +55,31 @@ export default function App() {
     messages: []
   });
 
+  // Handle Supabase Auth
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session && view === 'landing') setView('app'); // Auto login if session exists
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session && (view === 'login' || view === 'landing')) {
+          setView('app');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+      await signOut();
+      setSession(null);
+      setView('landing');
+  };
+
   // --- View Switching Logic ---
 
   if (view === 'landing') {
@@ -60,26 +90,29 @@ export default function App() {
         onNavigate={(page) => setView(page)}
         onLoadTemplate={(template) => {
             // Load template and jump straight to editor
-            setView('app');
-            // Small timeout to ensure app view mounts before state update if needed, though React batches usually handle this.
-            // Using logic similar to handleUseTemplate below.
-            const aiResponse: Message = {
-                role: 'model',
-                content: `I've loaded the "${template.name}" template. Ready to customize!`,
-                timestamp: Date.now()
-            };
-            
-            setState({
-                recipient: '',
-                topic: 'Using Template',
-                tone: ToneOption.Friendly,
-                subject: template.subject,
-                body: template.body,
-                isGenerating: false,
-                generated: true, // This forces WorkspaceView to render
-                messages: [aiResponse]
-            });
-            setActiveTab('home');
+            // If logged in go to app, else go to login then app
+            if (session) {
+                setView('app');
+                const aiResponse: Message = {
+                    role: 'model',
+                    content: `I've loaded the "${template.name}" template. Ready to customize!`,
+                    timestamp: Date.now()
+                };
+                setState({
+                    recipient: '',
+                    topic: 'Using Template',
+                    tone: ToneOption.Friendly,
+                    subject: template.subject,
+                    body: template.body,
+                    isGenerating: false,
+                    generated: true,
+                    messages: [aiResponse]
+                });
+                setActiveTab('home');
+            } else {
+                alert("Please login before using a template.");
+                setView('login');
+            }
         }}
       />
     );
@@ -88,7 +121,6 @@ export default function App() {
   if (view === 'login') {
     return (
       <LoginPage 
-        onLoginSuccess={() => setView('onboarding')} // Redirect to onboarding
         onBack={() => setView('landing')}
       />
     );
@@ -320,6 +352,20 @@ export default function App() {
     }
   };
 
+  const handlePublishCreation = async (draft: GeneratedEmail) => {
+     if (!session?.user) {
+         alert("You must be logged in to publish.");
+         return;
+     }
+     
+     const { error } = await publishCreation(draft, session.user.id, session.user.email?.split('@')[0] || 'Anonymous');
+     if (error) {
+         alert("Failed to publish: " + error.message);
+     } else {
+         alert("Published to community successfully!");
+     }
+  };
+
   const handleLoadCreation = (creation: Creation) => {
     const aiResponse: Message = {
         role: 'model',
@@ -330,6 +376,26 @@ export default function App() {
     setState({
         recipient: '',
         topic: 'Loaded Draft',
+        tone: ToneOption.Friendly,
+        subject: creation.subject,
+        body: creation.body,
+        isGenerating: false,
+        generated: true,
+        messages: [aiResponse]
+    });
+    setActiveTab('home');
+  };
+
+  const handleRemix = (creation: CommunityCreation) => {
+    const aiResponse: Message = {
+        role: 'model',
+        content: `I've loaded the community template "${creation.subject}" by ${creation.author_name}. Ready to remix!`,
+        timestamp: Date.now()
+    };
+
+    setState({
+        recipient: '',
+        topic: `Remixing ${creation.subject}`,
         tone: ToneOption.Friendly,
         subject: creation.subject,
         body: creation.body,
@@ -359,19 +425,7 @@ export default function App() {
 
     if (activeTab === 'community') {
       return (
-        <div className="h-full flex flex-col items-center justify-center text-stone-400">
-           <div className="w-24 h-24 rounded-full bg-stone-50 border border-stone-100 flex items-center justify-center mb-6">
-              <Users size={40} className="text-stone-300" />
-           </div>
-           <h3 className="text-xl font-bold text-stone-900 mb-2 font-display">Community Hub</h3>
-           <p className="font-medium max-w-sm text-center">Join thousands of creators sharing their best email templates and prompts. Coming soon.</p>
-           
-           <div className="mt-8 flex gap-2">
-              <div className="w-2 h-2 rounded-full bg-stone-200"></div>
-              <div className="w-2 h-2 rounded-full bg-stone-200"></div>
-              <div className="w-2 h-2 rounded-full bg-stone-200"></div>
-           </div>
-        </div>
+        <CommunityView onRemix={handleRemix} />
       );
     }
     
@@ -404,6 +458,7 @@ export default function App() {
         isGenerating={state.isGenerating}
         onBack={handleBack}
         onSave={handleSaveCreation}
+        onPublish={handlePublishCreation}
       />
     );
   };
@@ -513,12 +568,12 @@ export default function App() {
             
             {/* Log Out Button */}
              <button
-                onClick={() => setView('landing')}
+                onClick={handleSignOut}
                 className={`w-full mt-2 p-2 text-stone-400 hover:text-red-500 hover:bg-white/40 rounded-xl transition-all flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}
                 title="Log Out"
             >
-                <div className="w-5 h-5 border-2 border-current rounded-full flex items-center justify-center text-[10px] font-bold">
-                    <div className="w-0.5 h-2 bg-current rotate-45"></div>
+                <div className="w-5 h-5 flex items-center justify-center">
+                    <LogOut size={16} />
                 </div>
                 {!isSidebarCollapsed && <span className="text-sm font-medium">Log Out</span>}
             </button>

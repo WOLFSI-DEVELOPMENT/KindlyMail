@@ -8,8 +8,6 @@ interface BrandAssetsViewProps {
 export const BrandAssetsView: React.FC<BrandAssetsViewProps> = ({ onBack }) => {
   
   const handleDownloadLogo = (theme: 'light' | 'dark') => {
-    // For now, we will just download the provided PNG for simplicity in this demo environment
-    // In a real env, you might serve specific SVGs or PNGs based on the theme
     const link = document.createElement('a');
     link.href = 'https://iili.io/fNbamD7.md.png';
     link.download = 'KindlyMail-Logo.png';
@@ -48,7 +46,7 @@ export const BrandAssetsView: React.FC<BrandAssetsViewProps> = ({ onBack }) => {
         </div>
 
         {/* Logos Section */}
-        <section className="mb-24">
+        <section className="mb-32">
             <h2 className="text-2xl font-display font-bold mb-8 flex items-center gap-3">
                 <span className="bg-stone-100 text-stone-500 text-sm font-mono px-2 py-1 rounded">01</span>
                 Logos
@@ -86,186 +84,113 @@ export const BrandAssetsView: React.FC<BrandAssetsViewProps> = ({ onBack }) => {
         </section>
 
         {/* Product Screenshots Section */}
-        <section className="mb-24">
+        <section>
             <h2 className="text-2xl font-display font-bold mb-10 flex items-center gap-3">
                 <span className="bg-stone-100 text-stone-500 text-sm font-mono px-2 py-1 rounded">02</span>
                 App Screenshots
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+            <div className="space-y-20">
                 
-                {/* 1. AI Chat */}
-                <ScreenshotCard 
-                    title="AI Copilot" 
-                    description="Natural language design engine."
+                {/* Feature 1: AI Chat */}
+                <LargeScreenshotCard 
+                    title="AI Copilot Interface" 
+                    description="Our natural language engine allows users to generate production-ready emails just by chatting. The interface is clean, showing a conversation history and a prominent input area."
+                    tag="Generation"
                     onDownload={() => handleDownloadAsset('AI_Copilot.png')}
                 >
-                    <div className="flex flex-col h-full bg-stone-50/50">
-                        <div className="flex-1 p-4 space-y-3 overflow-hidden">
-                             <div className="flex justify-end">
-                                 <div className="bg-stone-900 text-white text-[10px] px-3 py-2 rounded-2xl rounded-br-sm shadow-sm max-w-[80%]">
-                                     Make it pop with a neon gradient.
+                    <div className="flex flex-col h-[500px] w-full bg-stone-50 relative">
+                        {/* Mock Chat UI */}
+                        <div className="absolute top-10 left-10 right-10 bottom-0 bg-white rounded-t-2xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden">
+                             <div className="h-12 border-b border-stone-100 flex items-center px-4 bg-stone-50/50">
+                                 <div className="flex gap-2">
+                                     <div className="w-3 h-3 rounded-full bg-red-400/50"></div>
+                                     <div className="w-3 h-3 rounded-full bg-amber-400/50"></div>
+                                     <div className="w-3 h-3 rounded-full bg-green-400/50"></div>
                                  </div>
                              </div>
-                             <div className="flex justify-start">
-                                 <div className="bg-white border border-stone-100 text-stone-600 text-[10px] px-3 py-2 rounded-2xl rounded-bl-sm shadow-sm max-w-[80%]">
-                                     I've applied a linear-gradient (pink to purple) to the header.
+                             <div className="flex-1 p-8 space-y-6">
+                                 <div className="flex flex-col items-end gap-2">
+                                     <div className="bg-stone-900 text-white px-6 py-4 rounded-3xl rounded-br-none text-lg shadow-sm">
+                                         Create a newsletter for our spring collection launch.
+                                     </div>
+                                 </div>
+                                 <div className="flex flex-col items-start gap-2">
+                                     <div className="bg-white border border-stone-200 text-stone-700 px-6 py-4 rounded-3xl rounded-bl-none text-lg shadow-sm">
+                                         I've generated 3 variations based on your brand colors.
+                                     </div>
                                  </div>
                              </div>
-                        </div>
-                        <div className="p-3 border-t border-stone-100 bg-white">
-                            <div className="h-8 rounded-full border border-stone-200 bg-stone-50 flex items-center px-3 justify-between">
-                                <div className="h-1.5 w-20 bg-stone-200 rounded-full"></div>
-                                <div className="w-5 h-5 rounded-full bg-stone-900 flex items-center justify-center">
-                                    <ArrowLeft size={8} className="text-white rotate-90" />
-                                </div>
-                            </div>
+                             <div className="p-6 border-t border-stone-100 bg-white">
+                                 <div className="h-14 rounded-full border border-stone-200 bg-stone-50"></div>
+                             </div>
                         </div>
                     </div>
-                </ScreenshotCard>
+                </LargeScreenshotCard>
 
-                {/* 2. Visual Editor */}
-                <ScreenshotCard 
+                {/* Feature 2: Visual Editor */}
+                <LargeScreenshotCard 
                     title="Visual Editor" 
-                    description="Precision control over every pixel."
+                    description="Users can fine-tune every pixel using the visual inspector. It provides granular control over typography, spacing, colors, and layout without writing code."
+                    tag="Editing"
+                    align="right"
                     onDownload={() => handleDownloadAsset('Visual_Editor.png')}
                 >
-                    <div className="flex h-full">
-                        <div className="w-1/3 border-r border-stone-100 bg-white p-3 space-y-3">
-                            <div className="space-y-1">
-                                <div className="h-1 w-8 bg-stone-300 rounded-full"></div>
-                                <div className="h-6 w-full bg-stone-50 border border-stone-200 rounded-md"></div>
-                            </div>
-                            <div className="space-y-1">
-                                <div className="h-1 w-10 bg-stone-300 rounded-full"></div>
-                                <div className="flex gap-1">
-                                    <div className="h-6 w-6 bg-stone-900 rounded-md"></div>
-                                    <div className="h-6 flex-1 bg-stone-50 border border-stone-200 rounded-md"></div>
+                    <div className="flex h-[500px] w-full bg-stone-100 relative items-center justify-center">
+                        <div className="absolute inset-10 bg-white rounded-xl shadow-2xl border border-stone-200 flex overflow-hidden">
+                            <div className="w-64 border-r border-stone-100 bg-stone-50 p-4 space-y-4">
+                                <div className="space-y-2">
+                                    <div className="h-4 w-20 bg-stone-200 rounded"></div>
+                                    <div className="h-10 w-full bg-white border border-stone-200 rounded-lg"></div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="h-4 w-24 bg-stone-200 rounded"></div>
+                                    <div className="flex gap-2">
+                                        <div className="h-10 w-10 bg-stone-900 rounded-lg"></div>
+                                        <div className="h-10 flex-1 bg-white border border-stone-200 rounded-lg"></div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="flex-1 bg-stone-50 p-4 flex items-center justify-center">
-                            <div className="w-20 h-20 bg-white shadow-lg rounded-lg border border-stone-100 flex items-center justify-center">
-                                <div className="w-10 h-1 rounded-full bg-stone-200 mb-2"></div>
-                                <div className="w-8 h-8 rounded-full bg-pink-500/20"></div>
+                            <div className="flex-1 bg-stone-50/50 p-8 flex items-center justify-center">
+                                <div className="w-64 h-64 bg-white shadow-lg rounded-xl border border-stone-200 flex flex-col items-center justify-center p-8">
+                                     <div className="w-16 h-16 rounded-full bg-pink-100 mb-4"></div>
+                                     <div className="h-4 w-32 bg-stone-200 rounded mb-2"></div>
+                                     <div className="h-2 w-20 bg-stone-100 rounded"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </ScreenshotCard>
+                </LargeScreenshotCard>
 
-                {/* 3. Template Gallery */}
-                <ScreenshotCard 
-                    title="Template Gallery" 
-                    description="Start with high-converting layouts."
-                    onDownload={() => handleDownloadAsset('Templates.png')}
-                >
-                    <div className="grid grid-cols-2 gap-3 p-4 bg-stone-50/30 h-full overflow-hidden">
-                        {[1, 2, 3, 4].map(i => (
-                            <div key={i} className="bg-white rounded-lg border border-stone-100 shadow-sm overflow-hidden flex flex-col h-24">
-                                <div className="h-14 bg-stone-100 relative">
-                                    {i === 1 && <div className="absolute inset-2 bg-pink-100 rounded-sm"></div>}
-                                    {i === 2 && <div className="absolute inset-2 bg-blue-100 rounded-sm"></div>}
-                                </div>
-                                <div className="p-1.5 space-y-1">
-                                    <div className="h-1 w-10 bg-stone-800 rounded-full"></div>
-                                    <div className="h-0.5 w-6 bg-stone-200 rounded-full"></div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </ScreenshotCard>
-
-                {/* 4. Context Memory */}
-                <ScreenshotCard 
-                    title="Context Memory" 
-                    description="Upload docs to train your AI."
-                    onDownload={() => handleDownloadAsset('Context_Memory.png')}
-                >
-                    <div className="flex flex-col h-full">
-                        <div className="p-3 border-b border-stone-100 bg-white">
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded bg-purple-100 flex items-center justify-center text-purple-600">
-                                    <Zap size={12} />
-                                </div>
-                                <div>
-                                    <div className="h-1.5 w-16 bg-stone-800 rounded-full mb-1"></div>
-                                    <div className="h-1 w-8 bg-stone-300 rounded-full"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex-1 bg-stone-50 p-3 space-y-2 relative overflow-hidden">
-                             {/* Floating Nodes Effect */}
-                             <div className="absolute top-4 right-4 w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                             <div className="absolute bottom-8 left-8 w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse delay-75"></div>
-
-                             <div className="bg-white p-2 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2">
-                                <div className="w-4 h-4 bg-red-100 rounded flex items-center justify-center text-[6px] text-red-500 font-bold">PDF</div>
-                                <div className="h-1 w-12 bg-stone-400 rounded-full"></div>
-                             </div>
-                             <div className="bg-white p-2 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2">
-                                <div className="w-4 h-4 bg-blue-100 rounded flex items-center justify-center text-[6px] text-blue-500 font-bold">DOC</div>
-                                <div className="h-1 w-10 bg-stone-400 rounded-full"></div>
-                             </div>
-                        </div>
-                    </div>
-                </ScreenshotCard>
-
-                {/* 5. Campaign Analytics (New) */}
-                <ScreenshotCard 
-                    title="Campaign Analytics" 
-                    description="Real-time performance tracking."
+                {/* Feature 3: Analytics */}
+                <LargeScreenshotCard 
+                    title="Real-time Analytics" 
+                    description="Track open rates, click-throughs, and engagement in real-time. The dashboard presents complex data in beautiful, easy-to-understand charts."
+                    tag="Performance"
                     onDownload={() => handleDownloadAsset('Analytics.png')}
                 >
-                    <div className="p-4 flex flex-col h-full bg-white">
-                        <div className="flex justify-between items-end mb-4">
-                            <div>
-                                <div className="h-1.5 w-12 bg-stone-300 rounded-full mb-1"></div>
-                                <div className="h-4 w-8 bg-stone-900 rounded-sm"></div>
-                            </div>
-                            <div className="h-4 w-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-[8px] font-bold">+24%</div>
+                    <div className="flex flex-col h-[500px] w-full bg-stone-50 relative p-12">
+                        <div className="bg-white w-full h-full rounded-2xl shadow-xl border border-stone-100 p-8 flex flex-col">
+                             <div className="flex justify-between items-end mb-8">
+                                 <div>
+                                     <h3 className="text-2xl font-bold text-stone-900">Campaign Performance</h3>
+                                     <p className="text-stone-500">Last 30 Days</p>
+                                 </div>
+                                 <div className="text-4xl font-bold text-stone-900">24.8% <span className="text-base text-green-500 font-normal">Open Rate</span></div>
+                             </div>
+                             <div className="flex-1 flex items-end justify-between gap-4">
+                                 {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 50, 95].map((h, i) => (
+                                     <div key={i} className="w-full bg-stone-50 rounded-t-xl relative group overflow-hidden">
+                                         <div 
+                                             style={{ height: `${h}%` }} 
+                                             className={`absolute bottom-0 w-full rounded-t-xl transition-all duration-700 ${i === 11 ? 'bg-stone-900' : 'bg-stone-200 group-hover:bg-stone-300'}`}
+                                         ></div>
+                                     </div>
+                                 ))}
+                             </div>
                         </div>
-                        <div className="flex-1 flex items-end justify-between gap-1.5">
-                            {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
-                                <div key={i} className="w-full bg-stone-100 rounded-t-sm relative group">
-                                    <div 
-                                        style={{ height: `${h}%` }} 
-                                        className={`absolute bottom-0 w-full rounded-t-sm transition-all duration-500 ${i === 5 ? 'bg-stone-900' : 'bg-stone-300'}`}
-                                    ></div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="h-px bg-stone-100 w-full mt-1"></div>
                     </div>
-                </ScreenshotCard>
-
-                {/* 6. Team Collaboration (New) */}
-                <ScreenshotCard 
-                    title="Team Collaboration" 
-                    description="Multiplayer editing in real-time."
-                    onDownload={() => handleDownloadAsset('Collaboration.png')}
-                >
-                     <div className="relative h-full bg-white p-4">
-                         {/* Content Mockup */}
-                         <div className="space-y-2 mb-4">
-                             <div className="h-2 w-3/4 bg-stone-100 rounded-full"></div>
-                             <div className="h-2 w-full bg-stone-100 rounded-full"></div>
-                             <div className="h-2 w-5/6 bg-stone-100 rounded-full"></div>
-                         </div>
-                         <div className="h-20 bg-stone-50 rounded-lg border border-dashed border-stone-200"></div>
-
-                         {/* User Cursor 1 */}
-                         <div className="absolute top-8 right-12 flex flex-col items-start z-10">
-                             <MousePointer2 size={16} className="text-pink-500 fill-pink-500" />
-                             <div className="bg-pink-500 text-white text-[8px] px-1.5 py-0.5 rounded ml-3">Sarah</div>
-                         </div>
-
-                         {/* User Cursor 2 */}
-                         <div className="absolute bottom-10 left-8 flex flex-col items-start z-10">
-                             <MousePointer2 size={16} className="text-blue-500 fill-blue-500" />
-                             <div className="bg-blue-500 text-white text-[8px] px-1.5 py-0.5 rounded ml-3">Mike</div>
-                         </div>
-                     </div>
-                </ScreenshotCard>
+                </LargeScreenshotCard>
 
             </div>
         </section>
@@ -275,45 +200,48 @@ export const BrandAssetsView: React.FC<BrandAssetsViewProps> = ({ onBack }) => {
   );
 };
 
-const ScreenshotCard: React.FC<{ 
+const LargeScreenshotCard: React.FC<{ 
     children: React.ReactNode; 
     title: string; 
     description: string;
+    tag?: string;
+    align?: 'left' | 'right';
     onDownload?: () => void;
-}> = ({ children, title, description, onDownload }) => {
+}> = ({ children, title, description, tag, align = 'left', onDownload }) => {
     return (
-        <div className="group flex flex-col gap-5">
-            {/* Window Container */}
-            <div className="relative bg-stone-100 rounded-[2rem] p-6 transition-all duration-300 hover:bg-stone-50 hover:-translate-y-2 hover:shadow-xl">
-                
-                <div className="bg-white rounded-xl shadow-lg shadow-stone-200/50 overflow-hidden border border-stone-200/50 aspect-[4/3] flex flex-col transform transition-transform duration-500 group-hover:scale-[1.02]">
-                    {/* Window Chrome */}
-                    <div className="h-8 bg-white border-b border-stone-100 flex items-center px-3 gap-1.5 shrink-0">
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57] border border-[#e0443e]"></div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e] border border-[#d89e24]"></div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#28c840] border border-[#1aab29]"></div>
+        <div className={`flex flex-col lg:flex-row gap-12 items-center ${align === 'right' ? 'lg:flex-row-reverse' : ''}`}>
+            
+            {/* Image Container */}
+            <div className="w-full lg:w-3/5 group">
+                <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-stone-200 border border-stone-100 bg-white transition-transform duration-500 hover:scale-[1.01]">
+                     {/* Window Chrome */}
+                    <div className="h-10 bg-white border-b border-stone-100 flex items-center px-4 gap-2">
+                        <div className="w-3 h-3 rounded-full bg-stone-200"></div>
+                        <div className="w-3 h-3 rounded-full bg-stone-200"></div>
+                        <div className="w-3 h-3 rounded-full bg-stone-200"></div>
                     </div>
-                    {/* Window Content */}
-                    <div className="flex-1 relative overflow-hidden">
-                        {children}
-                    </div>
-                </div>
+                    {children}
 
-                {/* Download Overlay Button (Optional) */}
-                {onDownload && (
-                    <button 
-                        onClick={onDownload}
-                        className="absolute top-4 right-4 bg-white/90 backdrop-blur text-stone-900 p-2 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-                    >
-                        <Download size={16} />
-                    </button>
-                )}
+                    {onDownload && (
+                        <button 
+                            onClick={onDownload}
+                            className="absolute top-4 right-4 bg-white/90 backdrop-blur text-stone-900 p-2.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
+                        >
+                            <Download size={18} />
+                        </button>
+                    )}
+                </div>
             </div>
 
-            {/* Label */}
-            <div className="text-center px-2">
-                <h3 className="font-bold text-lg text-stone-900 mb-1">{title}</h3>
-                <p className="text-sm text-stone-500">{description}</p>
+            {/* Text Content */}
+            <div className="w-full lg:w-2/5">
+                {tag && (
+                    <span className="inline-block px-3 py-1 rounded-full bg-stone-100 text-stone-600 text-xs font-bold uppercase tracking-wider mb-4">
+                        {tag}
+                    </span>
+                )}
+                <h3 className="text-3xl font-display font-bold text-stone-900 mb-4">{title}</h3>
+                <p className="text-lg text-stone-500 leading-relaxed">{description}</p>
             </div>
         </div>
     );

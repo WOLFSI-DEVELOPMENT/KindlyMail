@@ -433,7 +433,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                     Crafting the future of email communication with kindness and intelligence.
                  </p>
                  <div className="text-xs text-stone-500 mt-2">
-                    © 2024 KindlyMail AI Inc.
+                    © 2026 KindlyMail AI Inc.
                  </div>
               </div>
 
