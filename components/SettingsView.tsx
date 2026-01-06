@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, X, FileText, Image as ImageIcon, FileCode, File, Trash2, Cpu, ChevronDown, Check } from 'lucide-react';
+import { Upload, X, FileText, Image as ImageIcon, FileCode, File, Trash2, Cpu, ChevronDown, Check, ShieldCheck, Copy } from 'lucide-react';
 import { UploadedFile, PersonalContext, ToneSettings } from '../types';
 import { ContextVisualizer } from './ContextVisualizer';
 import { TextArea } from './ui/Input';
@@ -66,6 +66,37 @@ const ToneDropdown: React.FC<{
       </div>
     </div>
   );
+};
+
+const DnsRecordItem: React.FC<{ type: string; name: string; value: string }> = ({ type, name, value }) => {
+    const [copied, setCopied] = useState(false);
+    
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 flex flex-col gap-2">
+            <div className="flex justify-between items-start">
+                <span className="text-xs font-bold bg-stone-200 text-stone-600 px-2 py-0.5 rounded uppercase">{type}</span>
+                <span className="text-xs text-stone-500 font-mono">Name: {name}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+                <code className="flex-1 bg-white border border-stone-100 rounded px-2 py-1.5 text-xs text-stone-700 font-mono break-all line-clamp-2" title={value}>
+                    {value}
+                </code>
+                <button 
+                    onClick={copyToClipboard}
+                    className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg text-stone-400 hover:text-stone-900 transition-all shrink-0"
+                    title="Copy Value"
+                >
+                    {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                </button>
+            </div>
+        </div>
+    );
 };
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateContext }) => {
@@ -265,6 +296,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateCon
                 <p className="text-xs text-stone-400 px-2">
                     These instructions are prepended to every request you make.
                 </p>
+            </div>
+
+            {/* Domain Authentication (New) */}
+            <div className="space-y-3">
+                <label className="text-sm font-bold text-stone-900 uppercase tracking-wide flex items-center gap-2">
+                    <ShieldCheck size={16} /> Domain Authentication
+                </label>
+                <p className="text-xs text-stone-500">
+                    Add these records to your DNS provider to verify your sending domain (e.g. MailerLite).
+                </p>
+                <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-stone-200 space-y-4">
+                    <DnsRecordItem 
+                        type="CNAME" 
+                        name="litesrv._domainkey" 
+                        value="litesrv._domainkey.mlsend.com" 
+                    />
+                    <DnsRecordItem 
+                        type="TXT" 
+                        name="@" 
+                        value="v=spf1 a mx include:_spf.mlsend.com ?all" 
+                    />
+                    <DnsRecordItem 
+                        type="TXT" 
+                        name="@" 
+                        value="mailerlite-domain-verification=22096ef399ca9d0b167468026df0fc3db9832f50" 
+                    />
+                </div>
             </div>
 
             {/* File Upload */}

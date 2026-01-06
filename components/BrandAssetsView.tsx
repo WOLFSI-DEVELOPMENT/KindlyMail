@@ -1,5 +1,5 @@
-import React from 'react';
-import { Download, ArrowLeft, Heart, MousePointer2, BarChart3, Users, MessageSquare, Sliders, Layout, Zap, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, ArrowLeft, Heart, MousePointer2, BarChart3, Users, MessageSquare, Sliders, Layout, Zap, FileText, Copy, Check } from 'lucide-react';
 
 interface BrandAssetsViewProps {
   onBack: () => void;
@@ -84,7 +84,7 @@ export const BrandAssetsView: React.FC<BrandAssetsViewProps> = ({ onBack }) => {
         </section>
 
         {/* Product Screenshots Section */}
-        <section>
+        <section className="mb-32">
             <h2 className="text-2xl font-display font-bold mb-10 flex items-center gap-3">
                 <span className="bg-stone-100 text-stone-500 text-sm font-mono px-2 py-1 rounded">02</span>
                 App Screenshots
@@ -195,6 +195,70 @@ export const BrandAssetsView: React.FC<BrandAssetsViewProps> = ({ onBack }) => {
             </div>
         </section>
 
+        {/* Product Hunt Kit */}
+        <section>
+            <h2 className="text-2xl font-display font-bold mb-10 flex items-center gap-3">
+                <span className="bg-stone-100 text-stone-500 text-sm font-mono px-2 py-1 rounded">03</span>
+                Launch Kit
+            </h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                {/* Copy Section */}
+                <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm flex flex-col gap-6">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-bold text-stone-400 uppercase tracking-wide">Name</span>
+                        </div>
+                        <CopyBox text="KindlyMail AI" />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-bold text-stone-400 uppercase tracking-wide">Tagline</span>
+                        </div>
+                        <CopyBox text="Create emails worth opening. AI-powered, designer-quality." />
+                    </div>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-bold text-stone-400 uppercase tracking-wide">Description</span>
+                        </div>
+                        <CopyBox 
+                            multiline 
+                            text="Stop wrestling with HTML table tags. KindlyMail is the first email design engine that understands your brand. Paste a URL to extract styles, upload a screenshot to clone a layout, or just chat to design production-ready code." 
+                        />
+                    </div>
+                </div>
+
+                {/* Media Guidelines */}
+                <div className="flex flex-col gap-8">
+                    {/* Thumbnail Asset */}
+                    <div className="bg-stone-50 rounded-3xl p-8 border border-stone-200 flex items-center gap-8">
+                        <div className="w-24 h-24 bg-white rounded-2xl shadow-sm border border-stone-100 flex items-center justify-center shrink-0">
+                            <span className="text-xs font-bold text-stone-400">240x240</span>
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-stone-900 mb-1">Thumbnail (GIF/JPG)</h3>
+                            <p className="text-sm text-stone-500 mb-4">Use the main logo on a white background or a simple animation.</p>
+                            <button className="text-xs font-bold text-stone-900 border-b border-stone-200 hover:border-stone-900 transition-all pb-0.5">Download Template</button>
+                        </div>
+                    </div>
+
+                    {/* Gallery Asset */}
+                    <div className="flex-1 bg-stone-50 rounded-3xl p-8 border border-stone-200 flex flex-col justify-center">
+                        <div className="aspect-[16/9] w-full bg-white rounded-xl shadow-sm border border-stone-100 flex items-center justify-center mb-6">
+                            <span className="text-xs font-bold text-stone-400">1270x760</span>
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-stone-900 mb-1">Gallery Images</h3>
+                            <p className="text-sm text-stone-500 mb-4">We recommend 3-5 images showing the dashboard, the editor, and the final output.</p>
+                            <button className="text-xs font-bold text-stone-900 border-b border-stone-200 hover:border-stone-900 transition-all pb-0.5">Download Kit</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
       </main>
     </div>
   );
@@ -243,6 +307,40 @@ const LargeScreenshotCard: React.FC<{
                 <h3 className="text-3xl font-display font-bold text-stone-900 mb-4">{title}</h3>
                 <p className="text-lg text-stone-500 leading-relaxed">{description}</p>
             </div>
+        </div>
+    );
+}
+
+const CopyBox: React.FC<{ text: string; multiline?: boolean }> = ({ text, multiline }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+
+    return (
+        <div className="relative group">
+            {multiline ? (
+                <textarea 
+                    readOnly 
+                    value={text} 
+                    className="w-full h-24 bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm text-stone-800 resize-none focus:outline-none"
+                />
+            ) : (
+                <input 
+                    readOnly 
+                    value={text} 
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm text-stone-800 focus:outline-none"
+                />
+            )}
+            <button 
+                onClick={handleCopy}
+                className="absolute top-2 right-2 p-2 bg-white border border-stone-200 rounded-lg text-stone-500 hover:text-stone-900 shadow-sm opacity-0 group-hover:opacity-100 transition-all active:scale-95"
+            >
+                {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+            </button>
         </div>
     );
 }

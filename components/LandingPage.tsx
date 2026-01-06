@@ -152,9 +152,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 md:pt-48 md:pb-32 px-6">
+      <section className="pt-32 pb-20 md:pt-48 md:pb-32 px-6 relative">
         <div className="max-w-7xl mx-auto text-center">
           
+          <div className="flex justify-center mb-8">
+             <a href="https://www.producthunt.com/" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-full pl-2 pr-4 py-1.5 transition-all hover:bg-orange-100 hover:border-orange-200">
+                 <div className="w-6 h-6 bg-[#FF6154] rounded-full flex items-center justify-center text-white text-[10px] font-bold">P</div>
+                 <span className="text-sm font-medium text-stone-900 group-hover:text-orange-900">Upcoming on Product Hunt. <span className="text-stone-500 font-normal group-hover:text-orange-700">Notify me →</span></span>
+             </a>
+          </div>
+
           <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tight text-black mb-8 leading-[1.05] max-w-5xl mx-auto">
             The professional email<br/>orchestration platform.
           </h1>

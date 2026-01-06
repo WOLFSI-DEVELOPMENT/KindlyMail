@@ -10,10 +10,11 @@ import { BrandAssetsView } from './components/BrandAssetsView';
 import { LegalView } from './components/LegalView';
 import { CommunityView } from './components/CommunityView'; // Import Community
 import { OnboardingFlow, OnboardingData } from './components/OnboardingFlow';
+import { UserProfileModal } from './components/UserProfileModal'; // Import Modal
 import { EmailState, ToneOption, Message, PersonalContext, GeneratedEmail, Creation, Template } from './types';
 import { generateEmailDraft } from './services/geminiService';
 import { supabase, publishCreation, CommunityCreation, signOut } from './services/supabase'; // Import Supabase
-import { Home, FolderHeart, Settings, Heart, LayoutTemplate, PanelLeftClose, PanelLeftOpen, Users, LogOut } from 'lucide-react';
+import { Home, FolderHeart, Settings, Heart, LayoutTemplate, PanelLeftClose, PanelLeftOpen, Users, LogOut, User } from 'lucide-react';
 
 export default function App() {
   // Navigation State
@@ -22,6 +23,7 @@ export default function App() {
   // App Internal State
   const [activeTab, setActiveTab] = useState<'home' | 'templates' | 'creations' | 'settings' | 'community'>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   
   // Auth State
   const [session, setSession] = useState<any>(null);
@@ -55,19 +57,39 @@ export default function App() {
     messages: []
   });
 
-  // Handle Supabase Auth
+  // Handle Supabase Auth & Persistence
   useEffect(() => {
+    // 1. Check active session on mount (Supabase handles localStorage internally)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session && view === 'landing') setView('app'); // Auto login if session exists
+      if (session && view === 'landing') {
+          // Check if user has onboarded previously
+          const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+          if (hasOnboarded === 'true') {
+              setView('app');
+          } else {
+              setView('onboarding');
+          }
+      }
     });
 
+    // 2. Listen for auth changes (e.g. Magic Link redirect)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session && (view === 'login' || view === 'landing')) {
-          setView('app');
+
+      if (event === 'SIGNED_IN' && session) {
+          // When magic link redirects back to app
+          const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+          
+          if (hasOnboarded === 'true') {
+             if (view === 'login' || view === 'landing') setView('app');
+          } else {
+             setView('onboarding');
+          }
+      } else if (event === 'SIGNED_OUT') {
+          setView('landing');
       }
     });
 
@@ -78,6 +100,7 @@ export default function App() {
       await signOut();
       setSession(null);
       setView('landing');
+      setIsProfileModalOpen(false);
   };
 
   // --- View Switching Logic ---
@@ -136,7 +159,10 @@ export default function App() {
 
   // --- Onboarding Logic ---
   const handleOnboardingComplete = (data: OnboardingData) => {
-      // 1. Update Personal Context with text context
+      // 1. Mark as onboarded in LocalStorage so we don't show this again
+      localStorage.setItem('kindlymail_onboarded', 'true');
+
+      // 2. Update Personal Context with text context
       if (data.context) {
           setPersonalContext(prev => ({
               ...prev,
@@ -146,20 +172,20 @@ export default function App() {
           }));
       }
 
-      // 2. Set initial brand assets for HomeView
+      // 3. Set initial brand assets for HomeView
       setInitialBrandAssets({
           websiteUrl: data.websiteUrl,
           brandColor: data.brandAssets.colors[0] || '#000000'
       });
 
-      // 3. Navigate based on action
+      // 4. Navigate based on action
       if (data.action === 'template') {
           setActiveTab('templates');
       } else {
           setActiveTab('home');
       }
 
-      // 4. Go to App
+      // 5. Go to App
       setView('app');
   };
 
@@ -463,6 +489,12 @@ export default function App() {
     );
   };
 
+  // User Profile Data for Pill
+  const user = session?.user;
+  const userName = user?.user_metadata?.full_name || 'User';
+  const userAvatar = user?.user_metadata?.avatar_url;
+  const userEmail = user?.email || '';
+
   return (
     <div className="flex h-screen w-full bg-[#f3f4f6] p-3 font-sans overflow-hidden">
       
@@ -556,27 +588,53 @@ export default function App() {
              </button>
         </div>
 
-        {/* Collapse Button */}
-        <div className={`mt-auto ${isSidebarCollapsed ? 'px-2 flex justify-center' : 'px-4'}`}>
+        {/* Footer Area */}
+        <div className={`mt-auto ${isSidebarCollapsed ? 'px-2 flex flex-col items-center gap-4' : 'px-4'}`}>
             <button
                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="p-2 text-stone-400 hover:text-stone-900 hover:bg-white/40 rounded-xl transition-all"
+                className="p-2 text-stone-400 hover:text-stone-900 hover:bg-white/40 rounded-xl transition-all mb-2"
                 title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
                 {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
             </button>
             
-            {/* Log Out Button */}
-             <button
-                onClick={handleSignOut}
-                className={`w-full mt-2 p-2 text-stone-400 hover:text-red-500 hover:bg-white/40 rounded-xl transition-all flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}
-                title="Log Out"
-            >
-                <div className="w-5 h-5 flex items-center justify-center">
-                    <LogOut size={16} />
-                </div>
-                {!isSidebarCollapsed && <span className="text-sm font-medium">Log Out</span>}
-            </button>
+            {/* User Profile Pill */}
+            {user && (
+              <button 
+                onClick={() => setIsProfileModalOpen(true)}
+                className={`
+                  flex items-center gap-3 p-1.5 rounded-full bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all w-full
+                  ${isSidebarCollapsed ? 'justify-center aspect-square p-0 w-10 h-10' : ''}
+                `}
+              >
+                 <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center overflow-hidden border border-stone-200 flex-shrink-0">
+                    {userAvatar ? (
+                      <img src={userAvatar} alt="User" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={16} className="text-stone-400" />
+                    )}
+                 </div>
+                 
+                 {!isSidebarCollapsed && (
+                   <div className="flex-1 text-left min-w-0 pr-2">
+                      <p className="text-xs font-bold text-stone-900 truncate">{userName}</p>
+                      <p className="text-[10px] text-stone-400 truncate">{userEmail}</p>
+                   </div>
+                 )}
+              </button>
+            )}
+            
+            {/* Fallback Logout if no user (should not happen in app view usually) */}
+            {!user && (
+              <button
+                  onClick={() => setView('landing')}
+                  className={`w-full p-2 text-stone-400 hover:text-red-500 hover:bg-white/40 rounded-xl transition-all flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                  title="Log Out"
+              >
+                  <LogOut size={16} />
+                  {!isSidebarCollapsed && <span className="text-sm font-medium">Log Out</span>}
+              </button>
+            )}
         </div>
       </aside>
 
@@ -584,6 +642,14 @@ export default function App() {
       <main className="flex-1 bg-white rounded-[2.5rem] shadow-sm overflow-hidden relative border border-stone-100/50 ml-1">
          {renderContent()}
       </main>
+      
+      {/* Profile Modal */}
+      <UserProfileModal 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        onSignOut={handleSignOut}
+      />
 
     </div>
   );
