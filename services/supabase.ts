@@ -16,16 +16,6 @@ export const signInWithMagicLink = async (email: string) => {
   return { error };
 };
 
-export const signInWithGoogle = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-    },
-  });
-  return { error };
-};
-
 export const signUpWithEmailPassword = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signUp({
     email,

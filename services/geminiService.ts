@@ -1,17 +1,29 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedEmail, Message, ToneOption, PersonalContext } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+const getAiClient = () => {
+  const apiKey = localStorage.getItem('kindlymail_gemini_key') || process.env.API_KEY || '';
+  return new GoogleGenAI({ apiKey });
+};
+
+const getApiKey = () => {
+    return localStorage.getItem('kindlymail_gemini_key') || process.env.API_KEY || '';
+};
 
 export const generateEmailDraft = async (
   messages: Message[],
   currentDraft?: GeneratedEmail,
   personalContext?: PersonalContext
 ): Promise<GeneratedEmail> => {
+  const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error("API Key is missing.");
+    return {
+      subject: "API Key Required",
+      body: `<!DOCTYPE html><html><body style="font-family: sans-serif; padding: 40px; text-align: center; color: #444;"><h1>Gemini API Key Missing</h1><p>Please add your Gemini API Key in the Settings to start generating emails.</p></body></html>`
+    };
   }
+
+  const ai = getAiClient();
 
   // Using the requested Gemini 3.0 Flash model
   const model = "gemini-3-flash-preview";
@@ -126,12 +138,16 @@ export const generateEmailDraft = async (
     console.error("Gemini generation error:", error);
     return {
       subject: "Design Generation Error",
-      body: `<!DOCTYPE html><html><body style="font-family: sans-serif; padding: 40px; text-align: center; color: #444;"><h1>Something went wrong</h1><p>We couldn't generate your design at this moment. Please try again.</p></body></html>`
+      body: `<!DOCTYPE html><html><body style="font-family: sans-serif; padding: 40px; text-align: center; color: #444;"><h1>Something went wrong</h1><p>We couldn't generate your design at this moment. Please try again. details: ${(error as any).message}</p></body></html>`
     };
   }
 };
 
 export const buildMetaPrompt = async (userIntent: string): Promise<string> => {
+  const apiKey = getApiKey();
+  if (!apiKey) return "API Key missing. Please check settings.";
+  const ai = getAiClient();
+
   const prompt = `You are a professional prompt engineer for an AI email generator.
   
   User Intent: "${userIntent}"
@@ -166,6 +182,9 @@ export interface BrandAssets {
 
 export const analyzeBrandAssets = async (url: string): Promise<BrandAssets> => {
     if (!url) return { colors: [], fonts: [] };
+    const apiKey = getApiKey();
+    if (!apiKey) return { colors: ['#000000'], fonts: ['Helvetica'] }; // Fallback
+    const ai = getAiClient();
 
     try {
         const response = await ai.models.generateContent({

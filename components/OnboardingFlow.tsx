@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Globe, Loader2, Check, ArrowLeft, Plus, Search, Twitter, Users, HelpCircle, Palette, FileEdit, Layout } from 'lucide-react';
+import { ArrowRight, Globe, Loader2, Check, ArrowLeft, Plus, Search, Twitter, Users, HelpCircle, Palette, FileEdit, Layout, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeBrandAssets, BrandAssets } from '../services/geminiService';
 
@@ -16,7 +16,7 @@ export interface OnboardingData {
   action: 'template' | 'blank';
 }
 
-export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
+export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>({
@@ -27,20 +27,25 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
     context: '',
     action: 'blank'
   });
+  const [apiKey, setApiKey] = useState(localStorage.getItem('kindlymail_gemini_key') || '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleNext = () => setStep(prev => prev + 1);
   const handleBack = () => setStep(prev => prev - 1);
 
-  const handleComplete = (finalData: OnboardingData) => {
-      localStorage.setItem('kindlymail_onboarded', 'true');
-      // In a real app we would persist this data to the user profile here
-      navigate('/app');
+  const handleCompleteFlow = (finalData: OnboardingData) => {
+      // Just call the parent handler which does the heavy lifting
+      if (onComplete) onComplete(finalData);
+  };
+
+  const handleApiKeySubmit = () => {
+    localStorage.setItem('kindlymail_gemini_key', apiKey);
+    setStep(1);
   };
 
   const handleWebsiteSubmit = async () => {
     if (!data.websiteUrl) return;
-    setStep(1); // Move to analysis view
+    setStep(2); // Move to analysis view
     setIsAnalyzing(true);
     
     // Call Gemini
@@ -52,9 +57,43 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
 
   const renderStep = () => {
     switch(step) {
-      case 0: // Website URL
+      case 0: // API Key (New Step)
         return (
           <div className="w-full max-w-lg mx-auto text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="w-16 h-16 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <Key className="text-stone-900" size={32} />
+             </div>
+             <h2 className="text-3xl font-display font-bold text-stone-900 mb-4">First, your Key.</h2>
+             <p className="text-stone-500 mb-8 text-lg">KindlyMail uses your personal Gemini API key to generate content. It's stored locally on your device.</p>
+             
+             <div className="relative mb-6">
+                <input 
+                    type="password" 
+                    placeholder="Enter Gemini API Key (AIzaSy...)"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-6 py-5 text-lg outline-none focus:ring-2 focus:ring-black/5 text-center font-mono"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && apiKey && handleApiKeySubmit()}
+                />
+             </div>
+             
+             <button 
+                 onClick={handleApiKeySubmit}
+                 disabled={!apiKey}
+                 className="w-full bg-black text-white rounded-full py-4 font-bold text-lg hover:bg-stone-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+                 Save & Continue
+             </button>
+             
+             <p className="mt-6 text-sm text-stone-400">
+                 Don't have one? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline hover:text-stone-600">Get it here for free</a>.
+             </p>
+          </div>
+        );
+
+      case 1: // Website URL
+        return (
+          <div className="w-full max-w-lg mx-auto text-center animate-in fade-in slide-in-from-right-4 duration-500">
              <div className="w-16 h-16 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-6">
                  <Globe className="text-stone-900" size={32} />
              </div>
@@ -77,14 +116,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
                 >
                     Analyze Brand
                 </button>
-                <button onClick={() => setStep(2)} className="mt-4 text-stone-400 hover:text-stone-600 text-sm font-medium">
+                <button onClick={() => setStep(3)} className="mt-4 text-stone-400 hover:text-stone-600 text-sm font-medium">
                     Skip for now
                 </button>
              </div>
           </div>
         );
 
-      case 1: // Analysis Result
+      case 2: // Analysis Result
         return (
            <div className="w-full max-w-lg mx-auto text-center animate-in fade-in zoom-in-95 duration-500">
               {isAnalyzing ? (
@@ -136,7 +175,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
            </div>
         );
 
-      case 2: // Integrations (Klaviyo)
+      case 3: // Integrations (Klaviyo)
         return (
             <div className="w-full max-w-lg mx-auto text-center animate-in fade-in slide-in-from-right-4 duration-500">
                 <h2 className="text-3xl font-display font-bold text-stone-900 mb-4">Connect your ESP.</h2>
@@ -173,7 +212,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
             </div>
         );
 
-      case 3: // Source
+      case 4: // Source
          const sources = [
              { id: 'producthunt', label: 'Product Hunt', icon: <span className="font-bold text-orange-500">P</span> },
              { id: 'twitter', label: 'Twitter / X', icon: <Twitter size={18} className="text-blue-400" /> },
@@ -216,7 +255,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
             </div>
          );
 
-       case 4: // Context
+       case 5: // Context
           return (
             <div className="w-full max-w-lg mx-auto text-center animate-in fade-in slide-in-from-right-4 duration-500">
                 <h2 className="text-3xl font-display font-bold text-stone-900 mb-4">Add Personal Context</h2>
@@ -243,7 +282,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
             </div>
           );
 
-       case 5: // Final Action
+       case 6: // Final Action
           return (
             <div className="w-full max-w-4xl mx-auto text-center animate-in fade-in zoom-in-95 duration-500">
                 <h2 className="text-4xl font-display font-bold text-stone-900 mb-6">You're all set.</h2>
@@ -253,7 +292,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
                     <button 
                         onClick={() => {
                             const finalData = { ...data, action: 'template' as const };
-                            handleComplete(finalData);
+                            handleCompleteFlow(finalData);
                         }}
                         className="group flex flex-col items-center justify-center p-10 bg-white border border-stone-200 rounded-[2rem] hover:shadow-xl hover:border-stone-300 hover:-translate-y-1 transition-all duration-300"
                     >
@@ -267,7 +306,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
                     <button 
                         onClick={() => {
                             const finalData = { ...data, action: 'blank' as const };
-                            handleComplete(finalData);
+                            handleCompleteFlow(finalData);
                         }}
                         className="group flex flex-col items-center justify-center p-10 bg-white border border-stone-200 rounded-[2rem] hover:shadow-xl hover:border-stone-300 hover:-translate-y-1 transition-all duration-300"
                     >
@@ -292,7 +331,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
         <div className="absolute top-0 left-0 w-full h-1 bg-stone-50">
             <div 
                 className="h-full bg-black transition-all duration-500 ease-out"
-                style={{ width: `${((step + 1) / 6) * 100}%` }}
+                style={{ width: `${((step + 1) / 7) * 100}%` }}
             ></div>
         </div>
 

@@ -3,7 +3,7 @@ import { Heart, ArrowLeft, Loader2, Mail, Lock, User, Ghost } from 'lucide-react
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { signInWithGoogle, signInWithEmailPassword, signUpWithEmailPassword } from '../services/supabase';
+import { signInWithEmailPassword, signUpWithEmailPassword } from '../services/supabase';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,15 +36,6 @@ export const LoginPage: React.FC = () => {
             // Success - Redirect to App, which will handle onboarding check
             navigate('/app');
         }
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    const { error } = await signInWithGoogle();
-    if (error) {
-       setIsLoading(false);
-       setMessage({ type: 'error', text: error.message });
     }
   };
 
@@ -120,21 +111,11 @@ export const LoginPage: React.FC = () => {
                     <div className="w-full border-t border-stone-100"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-stone-400">Or continue with</span>
+                    <span className="px-2 bg-white text-stone-400">Or try demo mode</span>
                 </div>
             </div>
 
             <div className="flex flex-col gap-3">
-                <button 
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-3 bg-stone-50 border border-stone-200 text-stone-900 font-medium py-3.5 rounded-full hover:bg-stone-100 transition-all disabled:opacity-50"
-                >
-                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-                    Sign in with Google
-                </button>
-                
                 {/* Guest / Demo Button */}
                 <button 
                     type="button"
@@ -142,7 +123,7 @@ export const LoginPage: React.FC = () => {
                     className="w-full flex items-center justify-center gap-3 bg-white border border-dashed border-stone-300 text-stone-500 font-medium py-3.5 rounded-full hover:bg-stone-50 hover:text-stone-900 hover:border-stone-400 transition-all"
                 >
                     <Ghost size={18} />
-                    Continue as Guest (Demo Mode)
+                    Continue as Guest
                 </button>
             </div>
 

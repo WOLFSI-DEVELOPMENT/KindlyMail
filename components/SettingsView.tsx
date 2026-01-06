@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, X, FileText, Image as ImageIcon, FileCode, File, Trash2, Cpu, ChevronDown, Check, ShieldCheck, Copy } from 'lucide-react';
+import { Upload, X, FileText, Image as ImageIcon, FileCode, File, Trash2, Cpu, ChevronDown, Check, Copy, Key } from 'lucide-react';
 import { UploadedFile, PersonalContext, ToneSettings } from '../types';
 import { ContextVisualizer } from './ContextVisualizer';
-import { TextArea } from './ui/Input';
+import { TextArea, Input } from './ui/Input'; // Assuming Input export exists or we add it
 import { Button } from './ui/Button';
 
 interface SettingsViewProps {
@@ -68,40 +68,17 @@ const ToneDropdown: React.FC<{
   );
 };
 
-const DnsRecordItem: React.FC<{ type: string; name: string; value: string }> = ({ type, name, value }) => {
-    const [copied, setCopied] = useState(false);
-    
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(value);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-        <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 flex flex-col gap-2">
-            <div className="flex justify-between items-start">
-                <span className="text-xs font-bold bg-stone-200 text-stone-600 px-2 py-0.5 rounded uppercase">{type}</span>
-                <span className="text-xs text-stone-500 font-mono">Name: {name}</span>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-                <code className="flex-1 bg-white border border-stone-100 rounded px-2 py-1.5 text-xs text-stone-700 font-mono break-all line-clamp-2" title={value}>
-                    {value}
-                </code>
-                <button 
-                    onClick={copyToClipboard}
-                    className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg text-stone-400 hover:text-stone-900 transition-all shrink-0"
-                    title="Copy Value"
-                >
-                    {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                </button>
-            </div>
-        </div>
-    );
-};
-
 export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateContext }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [apiKey, setApiKey] = useState(localStorage.getItem('kindlymail_gemini_key') || '');
+  const [showKey, setShowKey] = useState(false);
+
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setApiKey(val);
+      localStorage.setItem('kindlymail_gemini_key', val);
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -225,6 +202,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateCon
         {/* Added 'scroll-smooth' and 'overscroll-contain' for better scrolling feel */}
         <div className="w-full lg:w-1/2 h-full overflow-y-auto p-6 lg:p-8 custom-scrollbar space-y-8 pb-20 scroll-smooth overscroll-contain">
             
+            {/* API Key Section */}
+            <div className="space-y-4">
+                <div>
+                   <label className="text-sm font-bold text-stone-900 uppercase tracking-wide flex items-center gap-2">
+                       <Key size={14} /> Gemini API Configuration
+                   </label>
+                   <p className="text-xs text-stone-500 mt-1">
+                      Required for the app to function. Your key is stored locally on your device.
+                   </p>
+                </div>
+                
+                <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-stone-200">
+                    <div className="relative">
+                        <input 
+                            type={showKey ? "text" : "password"}
+                            value={apiKey}
+                            onChange={handleApiKeyChange}
+                            placeholder="AIzaSy..."
+                            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 font-mono"
+                        />
+                        <button 
+                            onClick={() => setShowKey(!showKey)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs font-bold"
+                        >
+                            {showKey ? "HIDE" : "SHOW"}
+                        </button>
+                    </div>
+                    <div className="mt-3 flex justify-between items-center">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline">
+                            Get API Key →
+                        </a>
+                        {apiKey && <span className="text-xs text-green-600 font-bold flex items-center gap-1"><Check size={12} /> Saved</span>}
+                    </div>
+                </div>
+            </div>
+
             {/* Characteristics Section */}
             <div className="space-y-4">
                 <div>
@@ -296,33 +309,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateCon
                 <p className="text-xs text-stone-400 px-2">
                     These instructions are prepended to every request you make.
                 </p>
-            </div>
-
-            {/* Domain Authentication (New) */}
-            <div className="space-y-3">
-                <label className="text-sm font-bold text-stone-900 uppercase tracking-wide flex items-center gap-2">
-                    <ShieldCheck size={16} /> Domain Authentication
-                </label>
-                <p className="text-xs text-stone-500">
-                    Add these records to your DNS provider to verify your sending domain (e.g. MailerLite).
-                </p>
-                <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-stone-200 space-y-4">
-                    <DnsRecordItem 
-                        type="CNAME" 
-                        name="litesrv._domainkey" 
-                        value="litesrv._domainkey.mlsend.com" 
-                    />
-                    <DnsRecordItem 
-                        type="TXT" 
-                        name="@" 
-                        value="v=spf1 a mx include:_spf.mlsend.com ?all" 
-                    />
-                    <DnsRecordItem 
-                        type="TXT" 
-                        name="@" 
-                        value="mailerlite-domain-verification=22096ef399ca9d0b167468026df0fc3db9832f50" 
-                    />
-                </div>
             </div>
 
             {/* File Upload */}

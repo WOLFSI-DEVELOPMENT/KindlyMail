@@ -9,7 +9,7 @@ import { UserProfileModal } from './UserProfileModal';
 import { EmailState, ToneOption, Message, PersonalContext, GeneratedEmail, Creation } from '../types';
 import { generateEmailDraft } from '../services/geminiService';
 import { supabase, publishCreation, CommunityCreation, signOut } from '../services/supabase';
-import { Home, FolderHeart, Settings, LayoutTemplate, PanelLeftClose, PanelLeftOpen, Users, LogOut, User } from 'lucide-react';
+import { Home, FolderHeart, Settings, LayoutTemplate, PanelLeftClose, PanelLeftOpen, Users, LogOut, User, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
@@ -18,39 +18,57 @@ export const Dashboard: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [session, setSession] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Check auth and onboarding status
   useEffect(() => {
+    let mounted = true;
+
     const checkAuth = async () => {
-        // Check for Guest Mode first
-        const isGuest = localStorage.getItem('kindlymail_guest') === 'true';
-        if (isGuest) {
-            setSession({
-                user: {
-                    id: 'guest',
-                    email: 'guest@kindlymail.demo',
-                    user_metadata: {
-                        full_name: 'Guest Designer',
-                        avatar_url: null
+        try {
+            // Check for Guest Mode first
+            const isGuest = localStorage.getItem('kindlymail_guest') === 'true';
+            if (isGuest) {
+                if (mounted) {
+                    setSession({
+                        user: {
+                            id: 'guest',
+                            email: 'guest@kindlymail.demo',
+                            user_metadata: {
+                                full_name: 'Guest Designer',
+                                avatar_url: null
+                            }
+                        }
+                    });
+                    const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+                    if (hasOnboarded !== 'true') {
+                        navigate('/onboarding');
+                    }
+                    setIsAuthLoading(false);
+                }
+                return;
+            }
+
+            // Check Supabase
+            const { data: { session: sbSession } } = await supabase.auth.getSession();
+            
+            if (mounted) {
+                if (!sbSession) {
+                    navigate('/login');
+                } else {
+                    setSession(sbSession);
+                    const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+                    if (hasOnboarded !== 'true') {
+                        navigate('/onboarding');
                     }
                 }
-            });
-            const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
-            if (hasOnboarded !== 'true') {
-                navigate('/onboarding');
+                setIsAuthLoading(false);
             }
-            return;
-        }
-
-        // Check Supabase
-        const { data: { session: sbSession } } = await supabase.auth.getSession();
-        if (!sbSession) {
-            navigate('/login');
-        } else {
-            setSession(sbSession);
-            const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
-            if (hasOnboarded !== 'true') {
-                navigate('/onboarding');
+        } catch (error) {
+            console.error("Auth check failed", error);
+            if (mounted) {
+                navigate('/login');
+                setIsAuthLoading(false);
             }
         }
     };
@@ -61,14 +79,17 @@ export const Dashboard: React.FC = () => {
        if (event === 'SIGNED_OUT') {
            // Also clear guest mode on sign out
            localStorage.removeItem('kindlymail_guest');
-           navigate('/login');
+           if (mounted) navigate('/login');
        }
-       if (session) {
+       if (session && mounted) {
            setSession(session);
        }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+        mounted = false;
+        subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const [personalContext, setPersonalContext] = useState<PersonalContext>({
@@ -391,12 +412,21 @@ export const Dashboard: React.FC = () => {
     );
   };
 
+  // Show loading screen while auth is checking
+  if (isAuthLoading) {
+      return (
+          <div className="min-h-screen w-full flex items-center justify-center bg-[#f3f4f6]">
+              <Loader2 className="animate-spin text-stone-400" size={32} />
+          </div>
+      );
+  }
+
   const user = session?.user;
   const userName = user?.user_metadata?.full_name || 'User';
   const userAvatar = user?.user_metadata?.avatar_url;
   const userEmail = user?.email || '';
 
-  if (!session) return null; // Or a loading spinner while redirecting
+  if (!session) return null;
 
   return (
     <div className="flex h-screen w-full bg-[#f3f4f6] p-3 font-sans overflow-hidden">
@@ -527,6 +557,7 @@ export const Dashboard: React.FC = () => {
               </button>
             )}
             
+            {/* Fallback Logout if no user (should not happen in app view usually) */}
             {!user && (
               <button
                   onClick={handleSignOut}
