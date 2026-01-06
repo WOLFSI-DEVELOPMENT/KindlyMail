@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { GeneratedEmail, Message, ToneOption, PersonalContext, OutputFormat, ToneSettings } from "../types";
 
 const getAiClient = () => {
@@ -8,6 +8,31 @@ const getAiClient = () => {
 
 const getApiKey = () => {
     return localStorage.getItem('kindlymail_gemini_key') || process.env.API_KEY || '';
+};
+
+// Helper for exponential backoff
+const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, initialDelay = 2000): Promise<T> => {
+  let lastError;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      // Check for rate limit (429) or service unavailable (503) or specific error messages
+      const isRateLimit = error.status === 429 || error.message?.includes('429') || error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('rate limit');
+      const isServerOverload = error.status === 503 || error.message?.includes('503') || error.message?.includes('Overloaded');
+      
+      if (isRateLimit || isServerOverload) {
+        if (i === retries - 1) break; // Don't wait on the last attempt
+        const delay = initialDelay * Math.pow(2, i); // Exponential backoff: 2s, 4s, 8s
+        console.warn(`Gemini API Error (${error.status || 'limit'}), retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error; // Throw other errors immediately
+    }
+  }
+  throw lastError;
 };
 
 export const generateEmailDraft = async (
@@ -122,7 +147,7 @@ export const generateEmailDraft = async (
   promptText += `\nTask: Generate the JSON object with 'subject' and 'body'.`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
       model,
       contents: promptText,
       config: {
@@ -139,17 +164,34 @@ export const generateEmailDraft = async (
           required: ["subject", "body"]
         }
       }
-    });
+    }));
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
 
     return JSON.parse(text) as GeneratedEmail;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini generation error:", error);
+    
+    let errorMessage = "We couldn't generate your design at this moment. Please try again.";
+    let errorDetails = error.message || "Unknown error";
+
+    if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('rate limit')) {
+        errorMessage = "You've hit the rate limit for the AI model. Please wait a moment and try again.";
+        errorDetails = "Rate Limit Exceeded (429). The system is retrying automatically, but traffic is high.";
+    }
+
     return {
-      subject: "Design Generation Error",
-      body: `<!DOCTYPE html><html><body style="font-family: sans-serif; padding: 40px; text-align: center; color: #444;"><h1>Something went wrong</h1><p>We couldn't generate your design at this moment. Please try again. details: ${(error as any).message}</p></body></html>`
+      subject: "Generation Error",
+      body: `<!DOCTYPE html><html><body style="font-family: sans-serif; padding: 40px; text-align: center; color: #444;">
+        <div style="background: #fee2e2; color: #991b1b; padding: 30px; border-radius: 16px; display: inline-block; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h2 style="margin: 0 0 10px 0;">Generation Paused</h2>
+            <p style="margin: 0 0 20px 0; line-height: 1.5;">${errorMessage}</p>
+            <div style="font-size: 11px; opacity: 0.7; background: rgba(255,255,255,0.5); padding: 8px; border-radius: 8px; font-family: monospace;">
+                ${errorDetails}
+            </div>
+        </div>
+      </body></html>`
     };
   }
 };
@@ -175,14 +217,14 @@ export const buildMetaPrompt = async (userIntent: string): Promise<string> => {
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
-    });
+    }));
     return response.text || "Could not generate prompt.";
   } catch (error) {
     console.error(error);
-    return "Error generating prompt.";
+    return "Error generating prompt. Please try again.";
   }
 };
 
@@ -198,7 +240,7 @@ export const analyzeBrandAssets = async (url: string): Promise<BrandAssets> => {
     const ai = getAiClient();
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: `Analyze the visual identity of this website: ${url}. 
             Extract the primary brand color (hex code), a secondary accent color (hex code), and the primary font family used (or a generic fallback that matches the vibe).
@@ -219,7 +261,7 @@ export const analyzeBrandAssets = async (url: string): Promise<BrandAssets> => {
                    }
                 }
             }
-        });
+        }));
         
         const text = response.text;
         if (!text) return { colors: ['#000000'], fonts: ['Helvetica'] };
