@@ -1,0 +1,7 @@
+{
+  "name": "KindlyMail AI",
+  "description": "A delightful, clean, and kindly AI-powered email drafting tool with a focus on aesthetics and simplicity.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
