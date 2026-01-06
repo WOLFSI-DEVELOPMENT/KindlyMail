@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Heart, ArrowLeft, ArrowUp, Loader2, Mail, Lock, User, Ghost, Check, Image as ImageIcon, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { signInWithEmailPassword, signUpWithEmailPassword } from '../services/supabase';
+
+// Add Google Type declaration
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,12 +19,59 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
 
   // Animation States
   const [showUserMessage, setShowUserMessage] = useState(false);
   const [showAiMessage, setShowAiMessage] = useState(false);
   const [typingText, setTypingText] = useState("");
   const fullTypingText = "Make the logo larger and add more whitespace...";
+
+  // Google Sign In Logic
+  useEffect(() => {
+    // JWT Decoder
+    const parseJwt = (token: string) => {
+        try {
+            return JSON.parse(atob(token.split('.')[1]));
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const handleGoogleResponse = (response: any) => {
+        setIsLoading(true);
+        const userObject = parseJwt(response.credential);
+        
+        if (userObject) {
+            // Save Google User to LocalStorage (Simulating Session)
+            localStorage.setItem('kindlymail_google_user', JSON.stringify({
+                id: userObject.sub,
+                email: userObject.email,
+                name: userObject.name,
+                picture: userObject.picture
+            }));
+            
+            // Clear onboarding flag for existing users or force for new? 
+            // For simplicity, we assume they need to onboard if not set.
+            navigate('/app');
+        } else {
+            setMessage({ type: 'error', text: 'Failed to sign in with Google.' });
+        }
+        setIsLoading(false);
+    };
+
+    if (window.google && googleBtnRef.current) {
+        window.google.accounts.id.initialize({
+            client_id: "14206322756-1mqhu0ecati5kbuvcapdttsutb0v51lr.apps.googleusercontent.com",
+            callback: handleGoogleResponse
+        });
+
+        window.google.accounts.id.renderButton(
+            googleBtnRef.current,
+            { theme: "outline", size: "large", width: "100%", text: isSignUp ? "signup_with" : "signin_with", shape: "pill" }
+        );
+    }
+  }, [navigate, isSignUp]);
 
   useEffect(() => {
     // Sequence the chat bubbles
@@ -179,21 +233,24 @@ export const LoginPage: React.FC = () => {
                 </Button>
             </form>
             
-            <div className="relative my-10">
+            <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-stone-100"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-stone-400 font-medium">Or try demo mode</span>
+                    <span className="px-4 bg-white text-stone-400 font-medium">Or continue with</span>
                 </div>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
+                {/* Google Sign In Container */}
+                <div className="w-full flex justify-center" ref={googleBtnRef}></div>
+
                 {/* Guest / Demo Button */}
                 <button 
                     type="button"
                     onClick={handleGuestLogin}
-                    className="w-full flex items-center justify-center gap-3 bg-stone-50 border border-transparent text-stone-600 font-bold py-4 rounded-2xl hover:bg-stone-100 transition-all active:scale-[0.98]"
+                    className="w-full flex items-center justify-center gap-3 bg-stone-50 border border-transparent text-stone-600 font-bold py-3.5 rounded-full hover:bg-stone-100 transition-all active:scale-[0.98]"
                 >
                     <Ghost size={18} />
                     Continue as Guest

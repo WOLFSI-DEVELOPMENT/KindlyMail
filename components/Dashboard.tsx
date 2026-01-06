@@ -26,7 +26,31 @@ export const Dashboard: React.FC = () => {
 
     const checkAuth = async () => {
         try {
-            // Check for Guest Mode first
+            // Check for Google Session (LocalStorage)
+            const googleUserStr = localStorage.getItem('kindlymail_google_user');
+            if (googleUserStr) {
+                if (mounted) {
+                    const googleUser = JSON.parse(googleUserStr);
+                    setSession({
+                        user: {
+                            id: googleUser.id || googleUser.sub,
+                            email: googleUser.email,
+                            user_metadata: {
+                                full_name: googleUser.name,
+                                avatar_url: googleUser.picture
+                            }
+                        }
+                    });
+                    const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+                    if (hasOnboarded !== 'true') {
+                        navigate('/onboarding');
+                    }
+                    setIsAuthLoading(false);
+                }
+                return;
+            }
+
+            // Check for Guest Mode
             const isGuest = localStorage.getItem('kindlymail_guest') === 'true';
             if (isGuest) {
                 if (mounted) {
@@ -77,9 +101,11 @@ export const Dashboard: React.FC = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
        if (event === 'SIGNED_OUT') {
-           // Also clear guest mode on sign out
+           // Also clear guest mode/google mode on sign out from Supabase (just in case)
            localStorage.removeItem('kindlymail_guest');
-           if (mounted) navigate('/login');
+           if (!localStorage.getItem('kindlymail_google_user')) {
+               if (mounted) navigate('/login');
+           }
        }
        if (session && mounted) {
            setSession(session);
@@ -116,6 +142,7 @@ export const Dashboard: React.FC = () => {
 
   const handleSignOut = async () => {
     localStorage.removeItem('kindlymail_guest');
+    localStorage.removeItem('kindlymail_google_user');
     await signOut();
     navigate('/login');
   };

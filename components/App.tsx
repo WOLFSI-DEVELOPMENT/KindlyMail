@@ -57,39 +57,64 @@ export default function App() {
     messages: []
   });
 
-  // Handle Supabase Auth & Persistence
+  // Handle Auth & Persistence
   useEffect(() => {
-    // 1. Check active session on mount (Supabase handles localStorage internally)
+    // 1. Check for Google Session (Custom Implementation)
+    const googleUserStr = localStorage.getItem('kindlymail_google_user');
+    if (googleUserStr) {
+        try {
+            const googleUser = JSON.parse(googleUserStr);
+            setSession({
+                user: {
+                    id: googleUser.id || googleUser.sub,
+                    email: googleUser.email,
+                    user_metadata: {
+                        full_name: googleUser.name,
+                        avatar_url: googleUser.picture
+                    }
+                }
+            });
+            if (view === 'landing') {
+                const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+                setView(hasOnboarded === 'true' ? 'app' : 'onboarding');
+            }
+            return; // Exit if Google session found
+        } catch (e) {
+            console.error("Error parsing Google user", e);
+            localStorage.removeItem('kindlymail_google_user');
+        }
+    }
+
+    // 2. Check Supabase active session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session && view === 'landing') {
-          // Check if user has onboarded previously
-          const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
-          if (hasOnboarded === 'true') {
-              setView('app');
-          } else {
-              setView('onboarding');
+      if (session) {
+          setSession(session);
+          if (view === 'landing') {
+              const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
+              setView(hasOnboarded === 'true' ? 'app' : 'onboarding');
           }
       }
     });
 
-    // 2. Listen for auth changes (e.g. Magic Link redirect)
+    // 3. Listen for Supabase auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
 
       if (event === 'SIGNED_IN' && session) {
-          // When magic link redirects back to app
           const hasOnboarded = localStorage.getItem('kindlymail_onboarded');
-          
           if (hasOnboarded === 'true') {
              if (view === 'login' || view === 'landing') setView('app');
           } else {
              setView('onboarding');
           }
       } else if (event === 'SIGNED_OUT') {
-          setView('landing');
+          // If signed out from Supabase, check if Google session exists (edge case)
+          // otherwise go to landing
+          if (!localStorage.getItem('kindlymail_google_user')) {
+              setView('landing');
+          }
       }
     });
 
@@ -97,7 +122,13 @@ export default function App() {
   }, []);
 
   const handleSignOut = async () => {
+      // Clear Google Session
+      localStorage.removeItem('kindlymail_google_user');
+      localStorage.removeItem('kindlymail_guest');
+      
+      // Clear Supabase Session
       await signOut();
+      
       setSession(null);
       setView('landing');
       setIsProfileModalOpen(false);
