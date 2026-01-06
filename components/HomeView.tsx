@@ -1,9 +1,9 @@
 import React from 'react';
 import { PromptInput } from './ui/PromptInput';
-import { Message, ToneOption } from '../types';
+import { Message, ToneOption, OutputFormat, ToneSettings } from '../types';
 
 interface HomeViewProps {
-  onGenerate: (prompt: string, imageUrl?: string | null, websiteUrl?: string, brandLogo?: string | null, brandColor?: string, figmaUrl?: string, youtubeUrl?: string) => void;
+  onGenerate: (prompt: string, imageUrl?: string | null, websiteUrl?: string, brandLogo?: string | null, brandColor?: string, figmaUrl?: string, youtubeUrl?: string, outputFormat?: OutputFormat, toneSettings?: ToneSettings) => void;
   isLoading: boolean;
   onOpenSettings: () => void;
 }
@@ -16,10 +16,19 @@ export const HomeView: React.FC<HomeViewProps> = ({ onGenerate, isLoading, onOpe
   const [brandColor, setBrandColor] = React.useState('#000000');
   const [figmaUrl, setFigmaUrl] = React.useState('');
   const [youtubeUrl, setYoutubeUrl] = React.useState('');
+  
+  // New Local State
+  const [outputFormat, setOutputFormat] = React.useState<OutputFormat>('html');
+  const [toneSettings, setToneSettings] = React.useState<ToneSettings>({
+      warmth: 'Default',
+      enthusiasm: 'Default',
+      formatting: 'Default',
+      emojis: 'Default'
+  });
 
   const handleGenerate = () => {
     if (prompt.trim() || imageUrl || figmaUrl || youtubeUrl) {
-      onGenerate(prompt, imageUrl, websiteUrl, brandLogo, brandColor, figmaUrl, youtubeUrl);
+      onGenerate(prompt, imageUrl, websiteUrl, brandLogo, brandColor, figmaUrl, youtubeUrl, outputFormat, toneSettings);
     }
   };
 
@@ -72,6 +81,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onGenerate, isLoading, onOpe
             youtubeUrl={youtubeUrl}
             onYoutubeUrlChange={setYoutubeUrl}
             isLoading={isLoading}
+            outputFormat={outputFormat}
+            onOutputFormatChange={setOutputFormat}
+            toneSettings={toneSettings}
+            onToneSettingsChange={setToneSettings}
           />
         </div>
 

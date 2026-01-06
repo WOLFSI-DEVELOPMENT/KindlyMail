@@ -45,6 +45,8 @@ export interface ToneSettings {
   emojis: 'Default' | 'More' | 'Less';
 }
 
+export type OutputFormat = 'html' | 'text';
+
 export interface PersonalContext {
   systemInstructions: string;
   files: UploadedFile[];

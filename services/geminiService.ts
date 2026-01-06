@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GeneratedEmail, Message, ToneOption, PersonalContext } from "../types";
+import { GeneratedEmail, Message, ToneOption, PersonalContext, OutputFormat, ToneSettings } from "../types";
 
 const getAiClient = () => {
   const apiKey = localStorage.getItem('kindlymail_gemini_key') || process.env.API_KEY || '';
@@ -13,7 +13,9 @@ const getApiKey = () => {
 export const generateEmailDraft = async (
   messages: Message[],
   currentDraft?: GeneratedEmail,
-  personalContext?: PersonalContext
+  personalContext?: PersonalContext,
+  outputFormat: OutputFormat = 'html',
+  toneSettingsOverride?: ToneSettings
 ): Promise<GeneratedEmail> => {
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -28,45 +30,54 @@ export const generateEmailDraft = async (
   // Using the requested Gemini 3.0 Flash model
   const model = "gemini-3-flash-preview";
   
-  let systemInstruction = `You are the lead email designer for "KindlyMail AI", known for creating the cleanest, most aesthetically pleasing emails in the world.
+  let systemInstruction = "";
 
-  Your Goal: Create HTML emails that look like high-end design portfolios or luxury newsletters (e.g., Apple, Aesop, Linear).
+  if (outputFormat === 'html') {
+      systemInstruction = `You are the lead email designer for "KindlyMail AI".
+      Your Goal: Create HTML emails that look like high-end design portfolios or luxury newsletters (e.g., Apple, Aesop, Linear).
 
-  CRITICAL DESIGN RULES (Must Follow):
-  1. **Typography**: Use a font stack of 'Helvetica Neue', Helvetica, Arial, sans-serif. Set base font-size to 16px. Line-height MUST be at least 1.6 for body text.
-  2. **Whitespace**: Use generous padding. Main container padding should be 40px+. separate sections with 30-40px margins. White space is luxury.
-  3. **Container**: Max-width 600px. Center aligned. Background color #ffffff (or #fafafa for the outer body).
-  4. **Corners**: Use 'border-radius: 16px' for images and buttons. 'border-radius: 24px' for container cards if using a card style.
-  5. **Compatibility**: Use INLINE CSS only. No <style> blocks in the body (put reset styles in head, but structure must work with inline styles).
-  6. **Responsiveness**: Use percentage-based widths (e.g., width: 100%) for images to ensure mobile responsiveness.
+      CRITICAL DESIGN RULES (Must Follow):
+      1. **Typography**: Use a font stack of 'Helvetica Neue', Helvetica, Arial, sans-serif. Set base font-size to 16px. Line-height MUST be at least 1.6 for body text.
+      2. **Whitespace**: Use generous padding. Main container padding should be 40px+. separate sections with 30-40px margins. White space is luxury.
+      3. **Container**: Max-width 600px. Center aligned. Background color #ffffff (or #fafafa for the outer body).
+      4. **Corners**: Use 'border-radius: 16px' for images and buttons. 'border-radius: 24px' for container cards if using a card style.
+      5. **Compatibility**: Use INLINE CSS only. No <style> blocks in the body (put reset styles in head, but structure must work with inline styles).
+      6. **Responsiveness**: Use percentage-based widths (e.g., width: 100%) for images to ensure mobile responsiveness.
 
-  BRANDING ENFORCEMENT:
-  - **Logo**: If the user provides a [MANDATORY BRAND LOGO URL], you MUST place it at the top center of the email. Max height: 40px.
-  - **Colors**: If the user provides a [MANDATORY PRIMARY COLOR], you MUST use it for the background of the main call-to-action button and for bold links or key headers. Do not ignore this color.
-  - **Context Website**: If provided, use the 'googleSearch' tool to visit it and learn the tone of voice and supplementary design cues (but the manually provided logo/color takes precedence).
-
-  IMAGE & FIGMA HANDLING:
-  - If the prompt includes an [Attached Content Image], you MUST include it using <img src="..." style="width: 100%; border-radius: 12px; display: block; margin-bottom: 24px;" />.
-  - If the prompt includes a [Reference Figma Design], prioritize the structure and layout described in the prompt related to that design.
-
-  OUTPUT FORMAT:
-  Return ONLY a JSON object with this schema:
-  {
-    "subject": "The email subject line",
-    "body": "<!DOCTYPE html>..."
+      BRANDING ENFORCEMENT:
+      - **Logo**: If the user provides a [MANDATORY BRAND LOGO URL], you MUST place it at the top center of the email. Max height: 40px.
+      - **Colors**: If the user provides a [MANDATORY PRIMARY COLOR], you MUST use it for the background of the main call-to-action button and for bold links or key headers. Do not ignore this color.
+      - **Context Website**: If provided, use the 'googleSearch' tool to visit it and learn the tone of voice and supplementary design cues (but the manually provided logo/color takes precedence).
+      
+      IMAGE & FIGMA HANDLING:
+      - If the prompt includes an [Attached Content Image], you MUST include it using <img src="..." style="width: 100%; border-radius: 12px; display: block; margin-bottom: 24px;" />.
+      - If the prompt includes a [Reference Figma Design], prioritize the structure and layout described in the prompt related to that design.
+      `;
+  } else {
+      systemInstruction = `You are an expert copywriter for "KindlyMail AI".
+      Your Goal: Create personal, plain-text style emails that feel human, authentic, and direct.
+      
+      FORMATTING RULES:
+      1. **Style**: Mimic a standard Gmail/Outlook email. No heavy layout, no background colors, no cards.
+      2. **HTML**: Use minimal HTML tags (<p>, <br>, <b>, <a>). Do not use divs with styles, tables, or images unless explicitly requested.
+      3. **Typography**: Use standard sans-serif fonts. Font size 14px-16px.
+      4. **Tone**: Focus purely on the copy. Make it engaging, clear, and action-oriented.
+      `;
   }
-  `;
+
+  // Determine effective tone settings (Override > Personal Context > Default)
+  const effectiveTone = toneSettingsOverride || personalContext?.toneSettings;
 
   // Append Personal Context Instructions
-  if (personalContext) {
+  if (personalContext || effectiveTone) {
     let overrideInstructions = "\n\nUSER OVERRIDE & PREFERENCES:";
     
-    if (personalContext.systemInstructions) {
+    if (personalContext?.systemInstructions) {
         overrideInstructions += `\n${personalContext.systemInstructions}`;
     }
 
-    if (personalContext.toneSettings) {
-        const { warmth, enthusiasm, formatting, emojis } = personalContext.toneSettings;
+    if (effectiveTone) {
+        const { warmth, enthusiasm, formatting, emojis } = effectiveTone;
         overrideInstructions += "\n\nTONE & STYLE SETTINGS:";
         if (warmth !== 'Default') overrideInstructions += `\n- Warmth: ${warmth} (Adjust the friendliness and human touch accordingly)`;
         if (enthusiasm !== 'Default') overrideInstructions += `\n- Enthusiasm: ${enthusiasm} (Adjust exclamation marks and excitement accordingly)`;

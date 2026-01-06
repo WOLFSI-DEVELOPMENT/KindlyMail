@@ -6,7 +6,7 @@ import { SettingsView } from './SettingsView';
 import { CreationsView } from './CreationsView';
 import { CommunityView } from './CommunityView';
 import { UserProfileModal } from './UserProfileModal';
-import { EmailState, ToneOption, Message, PersonalContext, GeneratedEmail, Creation } from '../types';
+import { EmailState, ToneOption, Message, PersonalContext, GeneratedEmail, Creation, OutputFormat, ToneSettings } from '../types';
 import { generateEmailDraft } from '../services/geminiService';
 import { supabase, publishCreation, CommunityCreation, signOut } from '../services/supabase';
 import { Home, FolderHeart, Settings, LayoutTemplate, PanelLeftClose, PanelLeftOpen, Users, LogOut, User, Loader2 } from 'lucide-react';
@@ -127,7 +127,9 @@ export const Dashboard: React.FC = () => {
     brandLogo?: string | null, 
     brandColor?: string, 
     figmaUrl?: string, 
-    youtubeUrl?: string
+    youtubeUrl?: string,
+    outputFormat?: OutputFormat,
+    toneSettingsOverride?: ToneSettings
   ) => {
     let content = prompt;
     
@@ -176,15 +178,10 @@ export const Dashboard: React.FC = () => {
     }));
 
     try {
-      // Pass personalContext to the service
-      const result = await generateEmailDraft(newMessages, undefined, personalContext);
+      // Pass personalContext and format to the service
+      const result = await generateEmailDraft(newMessages, undefined, personalContext, outputFormat, toneSettingsOverride);
       
-      let replyContent = "I've drafted an email for you.";
-      if (websiteUrl) replyContent += " I analyzed your website style.";
-      if (brandLogo) replyContent += " I used your custom logo.";
-      if (figmaUrl) replyContent += " I referenced your Figma design link.";
-      if (youtubeUrl) replyContent += " I analyzed your YouTube video.";
-      if (personalContext.files.length > 0) replyContent += ` I also referenced your ${personalContext.files.length} uploaded file(s).`;
+      let replyContent = outputFormat === 'text' ? "I've drafted a text email for you." : "I've drafted an HTML email for you.";
       
       const aiResponse: Message = {
         role: 'model',
@@ -412,7 +409,6 @@ export const Dashboard: React.FC = () => {
     );
   };
 
-  // Show loading screen while auth is checking
   if (isAuthLoading) {
       return (
           <div className="min-h-screen w-full flex items-center justify-center bg-[#f3f4f6]">
@@ -430,7 +426,6 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full bg-[#f3f4f6] p-3 font-sans overflow-hidden">
-      
       {/* Sidebar */}
       <aside className={`${isSidebarCollapsed ? 'w-[80px]' : 'w-[240px]'} flex-shrink-0 flex flex-col py-6 transition-all duration-300 ease-in-out`}>
         {/* Branding */}
@@ -445,129 +440,18 @@ export const Dashboard: React.FC = () => {
 
         {/* Navigation */}
         <div className={`space-y-2 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
-             <button
-                onClick={() => setActiveTab('home')}
-                className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${
-                  activeTab === 'home' 
-                    ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' 
-                    : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'
-                } ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}
-                title={isSidebarCollapsed ? "Home" : ""}
-             >
-                <div className={`${activeTab === 'home' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}>
-                    <Home size={20} />
-                </div>
-                {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Home</span>}
-             </button>
-
-             <button
-                onClick={() => setActiveTab('templates')}
-                className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${
-                  activeTab === 'templates' 
-                    ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' 
-                    : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'
-                } ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}
-                title={isSidebarCollapsed ? "Templates" : ""}
-             >
-                <div className={`${activeTab === 'templates' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}>
-                    <LayoutTemplate size={20} />
-                </div>
-                {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Templates</span>}
-             </button>
-
-             <button
-                onClick={() => setActiveTab('creations')}
-                className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${
-                  activeTab === 'creations' 
-                    ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' 
-                    : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'
-                } ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}
-                title={isSidebarCollapsed ? "My Creations" : ""}
-             >
-                <div className={`${activeTab === 'creations' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}>
-                    <FolderHeart size={20} />
-                </div>
-                {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">My Creations</span>}
-             </button>
-
-             <button
-                onClick={() => setActiveTab('community')}
-                className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${
-                  activeTab === 'community' 
-                    ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' 
-                    : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'
-                } ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}
-                title={isSidebarCollapsed ? "Community" : ""}
-             >
-                <div className={`${activeTab === 'community' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}>
-                    <Users size={20} />
-                </div>
-                {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Community</span>}
-             </button>
-
-             <button
-                onClick={() => setActiveTab('settings')}
-                className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${
-                  activeTab === 'settings' 
-                    ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' 
-                    : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'
-                } ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}
-                title={isSidebarCollapsed ? "Settings" : ""}
-             >
-                <div className={`${activeTab === 'settings' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}>
-                    <Settings size={20} />
-                </div>
-                {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Settings</span>}
-             </button>
+             <button onClick={() => setActiveTab('home')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'home' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Home" : ""}><div className={`${activeTab === 'home' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Home size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Home</span>}</button>
+             <button onClick={() => setActiveTab('templates')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'templates' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Templates" : ""}><div className={`${activeTab === 'templates' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><LayoutTemplate size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Templates</span>}</button>
+             <button onClick={() => setActiveTab('creations')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'creations' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "My Creations" : ""}><div className={`${activeTab === 'creations' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><FolderHeart size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">My Creations</span>}</button>
+             <button onClick={() => setActiveTab('community')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'community' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Community" : ""}><div className={`${activeTab === 'community' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Users size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Community</span>}</button>
+             <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'settings' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Settings" : ""}><div className={`${activeTab === 'settings' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Settings size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Settings</span>}</button>
         </div>
 
         {/* Footer Area */}
         <div className={`mt-auto ${isSidebarCollapsed ? 'px-2 flex flex-col items-center gap-4' : 'px-4'}`}>
-            <button
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="p-2 text-stone-400 hover:text-stone-900 hover:bg-white/40 rounded-xl transition-all mb-2"
-                title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            >
-                {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
-            </button>
-            
-            {/* User Profile Pill */}
-            {user && (
-              <button 
-                onClick={() => setIsProfileModalOpen(true)}
-                className={`
-                  flex items-center gap-3 p-1.5 rounded-full bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all w-full
-                  ${isSidebarCollapsed ? 'justify-center aspect-square p-0 w-10 h-10' : ''}
-                `}
-              >
-                 <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center overflow-hidden border border-stone-200 flex-shrink-0">
-                    {userAvatar ? (
-                      <img src={userAvatar} alt="User" className="w-full h-full object-cover" />
-                    ) : (
-                      <User size={16} className="text-stone-400" />
-                    )}
-                 </div>
-                 
-                 {!isSidebarCollapsed && (
-                   <div className="flex-1 text-left min-w-0 pr-2">
-                      <p className="text-xs font-bold text-stone-900 truncate">{userName}</p>
-                      <p className="text-[10px] text-stone-400 truncate">{userEmail}</p>
-                   </div>
-                 )}
-              </button>
-            )}
-            
-            {/* Fallback Logout if no user (should not happen in app view usually) */}
-            {!user && (
-              <button
-                  onClick={handleSignOut}
-                  className={`w-full p-2 text-stone-400 hover:text-red-500 hover:bg-white/40 rounded-xl transition-all flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}
-                  title="Log Out"
-              >
-                  <LogOut size={16} />
-                  {!isSidebarCollapsed && <span className="text-sm font-medium">Log Out</span>}
-              </button>
-            )}
+            <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="p-2 text-stone-400 hover:text-stone-900 hover:bg-white/40 rounded-xl transition-all mb-2" title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>{isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}</button>
+            {user && (<button onClick={() => setIsProfileModalOpen(true)} className={`flex items-center gap-3 p-1.5 rounded-full bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all w-full ${isSidebarCollapsed ? 'justify-center aspect-square p-0 w-10 h-10' : ''}`}><div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center overflow-hidden border border-stone-200 flex-shrink-0">{userAvatar ? (<img src={userAvatar} alt="User" className="w-full h-full object-cover" />) : (<User size={16} className="text-stone-400" />)}</div>{!isSidebarCollapsed && (<div className="flex-1 text-left min-w-0 pr-2"><p className="text-xs font-bold text-stone-900 truncate">{userName}</p><p className="text-[10px] text-stone-400 truncate">{userEmail}</p></div>)}</button>)}
+            {!user && (<button onClick={() => navigate('/')} className={`w-full p-2 text-stone-400 hover:text-red-500 hover:bg-white/40 rounded-xl transition-all flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`} title="Log Out"><LogOut size={16} />{!isSidebarCollapsed && <span className="text-sm font-medium">Log Out</span>}</button>)}
         </div>
       </aside>
 
@@ -577,13 +461,7 @@ export const Dashboard: React.FC = () => {
       </main>
       
       {/* Profile Modal */}
-      <UserProfileModal 
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        user={user}
-        onSignOut={handleSignOut}
-      />
-
+      <UserProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} user={user} onSignOut={handleSignOut} />
     </div>
   );
 };

@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, ChevronLeft, Monitor, Smartphone, ArrowUp, ArrowRight } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, ChevronLeft, Monitor, Smartphone, ArrowUp, ArrowRight, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TEMPLATES } from '../data/templates';
 import { Template } from '../types';
 
 interface LandingPageProps {
   onLoadTemplate?: (template: Template) => void;
+  onGetStarted?: () => void;
+  onLogin?: () => void;
+  onNavigate?: (page: any) => void;
 }
 
 const TypingAnimation = () => {
@@ -56,7 +59,6 @@ const TypingAnimation = () => {
     const pauseTime = 800;
 
     const currentFullText = text; 
-    // Calculate effective length relative to what we are adding/removing
     // Phase 1: Typing "hours"
     if (phase === 'typing-hours') {
         const target = baseText + word1;
@@ -105,19 +107,9 @@ const TypingAnimation = () => {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLoadTemplate }) => {
   const navigate = useNavigate();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-        setScrollY(window.scrollY);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   const handleTemplateClick = (template: Template) => {
-    // For now, redirect to login to ensure they are authenticated
     navigate('/login');
   };
 
@@ -160,9 +152,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoadTemplate }) => {
         <div className="max-w-7xl mx-auto text-center">
           
           <div className="flex justify-center mb-8">
-             <a href="https://www.producthunt.com/" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-full pl-2 pr-4 py-1.5 transition-all hover:bg-orange-100 hover:border-orange-200">
-                 <div className="w-6 h-6 bg-[#FF6154] rounded-full flex items-center justify-center text-white text-[10px] font-bold">P</div>
-                 <span className="text-sm font-medium text-stone-900 group-hover:text-orange-900">Upcoming on Product Hunt. <span className="text-stone-500 font-normal group-hover:text-orange-700">Notify me →</span></span>
+             <a 
+               href="https://www.producthunt.com/products/kindlymail-ai?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-kindlymail-ai" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="inline-block transition-transform hover:scale-105 active:scale-95 group"
+             >
+                 <img 
+                   src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1058900&theme=dark&t=1767671168901" 
+                   alt="KindlyMail AI - Create emails worth opening. AI-powered, designer-quality. | Product Hunt" 
+                   width="250" 
+                   height="54" 
+                   className="h-[42px] w-auto rounded-full shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/30 transition-shadow"
+                 />
              </a>
           </div>
 
@@ -274,38 +276,34 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoadTemplate }) => {
           </div>
       </section>
 
-      {/* New: Infinite Sliding Template Gallery */}
-      <section id="templates" className="py-24 bg-stone-50 overflow-hidden relative">
-        <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
+      {/* Auto-scrolling Template Gallery */}
+      <section id="templates" className="bg-stone-50 py-24 overflow-hidden relative">
+        <div className="max-w-7xl mx-auto px-6 mb-12 text-center w-full relative z-10">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-stone-900 mb-4">Start with a Blueprint</h2>
-            <p className="text-stone-500 text-lg">Click any template to edit immediately.</p>
+            <p className="text-stone-500 text-lg">Browse our professional template library.</p>
         </div>
 
         <div className="relative w-full">
-            {/* Gradient Masks */}
-            <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-stone-50 to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-stone-50 to-transparent z-10 pointer-events-none"></div>
+            {/* Gradient Masks for Fade Effect */}
+            <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-stone-50 to-transparent z-20 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-stone-50 to-transparent z-20 pointer-events-none"></div>
 
-            <div 
-                className="flex gap-8 px-8 w-max"
-                style={{ 
-                    transform: `translateX(calc(-5% - ${scrollY * 0.2}px))`, // Scroll-driven movement
-                    transition: 'transform 0.1s linear'
-                }}
-            >
-                {/* Double the array for seamless loop feeling (though technically just long) */}
+            {/* Marquee Track */}
+            <div className="flex gap-8 w-max animate-marquee hover:[animation-play-state:paused] px-8">
+                {/* Render templates twice for seamless loop */}
                 {[...TEMPLATES, ...TEMPLATES].map((template, idx) => (
                     <div 
                         key={`${template.id}-${idx}`}
-                        className="relative group w-[280px] h-[500px] bg-white rounded-[2rem] shadow-xl shadow-stone-200 border border-stone-200 overflow-hidden cursor-pointer hover:-translate-y-4 hover:shadow-2xl transition-all duration-300"
+                        className="relative group w-[320px] h-[560px] bg-white rounded-[2.5rem] shadow-xl shadow-stone-200 border border-stone-200 overflow-hidden cursor-pointer hover:-translate-y-4 hover:shadow-2xl transition-all duration-300"
                         onClick={() => handleTemplateClick(template)}
                     >
                         {/* Preview Iframe */}
                         <div className="absolute inset-0 w-full h-full pointer-events-none">
                             <iframe 
                                 srcDoc={template.body} 
-                                className="w-[200%] h-[200%] transform scale-50 origin-top-left bg-white"
+                                className="w-[200%] h-[200%] transform scale-50 origin-top-left bg-white border-none"
                                 title={template.name}
+                                tabIndex={-1}
                             />
                         </div>
                         
@@ -313,92 +311,131 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoadTemplate }) => {
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
                         {/* Hover Actions */}
-                        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end h-1/2">
-                            <span className="text-white text-xs font-bold uppercase tracking-wider mb-1">{template.category}</span>
-                            <h3 className="text-white font-bold text-xl mb-3">{template.name}</h3>
-                            <button className="bg-white text-black py-3 px-6 rounded-full font-bold text-sm flex items-center justify-center gap-2 hover:bg-stone-200 transition-colors">
-                                Edit Template <ArrowRight size={14} />
+                        <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end h-1/2">
+                            <span className="text-white text-xs font-bold uppercase tracking-wider mb-2">{template.category}</span>
+                            <h3 className="text-white font-bold text-2xl mb-4 leading-tight">{template.name}</h3>
+                            <button className="bg-white text-black py-3.5 px-6 rounded-full font-bold text-sm flex items-center justify-center gap-2 hover:bg-stone-200 transition-colors">
+                                Edit Template <ArrowRight size={16} />
                             </button>
                         </div>
                     </div>
                 ))}
             </div>
         </div>
+
+        {/* Inline Style for Marquee Animation */}
+        <style>{`
+            @keyframes marquee {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-50%); }
+            }
+            .animate-marquee {
+                animation: marquee 80s linear infinite;
+            }
+        `}</style>
       </section>
 
       {/* Pricing - Clean Table */}
-      <section id="pricing" className="py-24 bg-white">
+      <section id="pricing" className="py-32 bg-white relative z-10">
           <div className="max-w-7xl mx-auto px-6">
-              <h2 className="font-display text-3xl font-bold text-black mb-16 text-center">Plans & Pricing</h2>
+              
+              <div className="text-center mb-16">
+                  <h2 className="font-display text-4xl md:text-5xl font-bold text-stone-900 mb-6 tracking-tight">Plans & Pricing</h2>
+                  <p className="text-lg text-stone-500 max-w-xl mx-auto mb-10">
+                    Start for free, upgrade when you need to scale. <br/> No credit card required for the free tier.
+                  </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                  {/* Toggle */}
+                  <div className="inline-flex bg-stone-100 p-1.5 rounded-full relative">
+                    <button 
+                      onClick={() => setBillingCycle('monthly')}
+                      className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${billingCycle === 'monthly' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-900'}`}
+                    >
+                      Monthly
+                    </button>
+                    <button 
+                      onClick={() => setBillingCycle('yearly')}
+                      className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${billingCycle === 'yearly' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-900'}`}
+                    >
+                      Yearly <span className="text-[10px] text-green-600 ml-1 font-extrabold">-20%</span>
+                    </button>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
                   
-                  {/* Free */}
-                  <div className="p-8 border border-stone-200 rounded-2xl flex flex-col">
-                      <div className="mb-4">
-                          <h3 className="font-bold text-black">Individual</h3>
-                          <div className="mt-2 flex items-baseline gap-1">
-                              <span className="text-3xl font-bold text-black">$0</span>
-                              <span className="text-stone-500">/mo</span>
+                  {/* Free Plan */}
+                  <div className="p-10 rounded-[2.5rem] border border-stone-200 bg-white flex flex-col h-full hover:shadow-xl transition-all duration-300">
+                      <div className="mb-8">
+                          <div className="text-stone-500 font-bold text-sm uppercase tracking-wider mb-2">Individual</div>
+                          <div className="flex items-baseline gap-1">
+                              <span className="text-5xl font-display font-bold text-stone-900">$0</span>
+                              <span className="text-stone-400 font-medium">/mo</span>
                           </div>
+                          <p className="text-stone-500 mt-4 text-sm leading-relaxed">Perfect for hobbyists and side projects.</p>
                       </div>
-                      <ul className="space-y-3 mb-8 flex-1">
-                          <li className="flex items-center gap-3 text-sm text-stone-600">
-                              <CheckCircle2 size={16} className="text-black" /> 10 Exports / mo
-                          </li>
-                          <li className="flex items-center gap-3 text-sm text-stone-600">
-                              <CheckCircle2 size={16} className="text-black" /> Basic Templates
-                          </li>
-                      </ul>
-                      <button onClick={() => navigate('/login')} className="w-full py-3 border border-stone-200 rounded-lg font-medium hover:border-black transition-colors text-sm">
+                      {/* Features */}
+                      <div className="flex-1 space-y-4 mb-10">
+                          {['10 Exports / mo', 'Basic Templates', 'Community Access', '7-day History'].map(feature => (
+                              <div key={feature} className="flex items-center gap-3 text-sm text-stone-600 font-medium">
+                                  <div className="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center shrink-0"><Check size={12} /></div>
+                                  {feature}
+                              </div>
+                          ))}
+                      </div>
+                      <button onClick={() => navigate('/login')} className="w-full py-4 rounded-2xl border border-stone-200 font-bold text-stone-900 hover:bg-stone-50 hover:border-stone-300 transition-all">
                           Get Started
                       </button>
                   </div>
 
-                  {/* Pro */}
-                  <div className="p-8 bg-stone-900 rounded-2xl flex flex-col shadow-xl">
-                      <div className="mb-4">
-                          <h3 className="font-bold text-white">Business</h3>
-                          <div className="mt-2 flex items-baseline gap-1">
-                              <span className="text-3xl font-bold text-white">$29</span>
-                              <span className="text-stone-400">/mo</span>
+                  {/* Pro Plan */}
+                  <div className="p-10 rounded-[2.5rem] bg-stone-900 text-white flex flex-col h-full shadow-2xl shadow-stone-300/50 relative overflow-hidden transform md:-translate-y-4">
+                      <div className="absolute top-0 right-0 bg-stone-800 text-stone-200 text-[10px] font-bold px-4 py-2 rounded-bl-2xl uppercase tracking-wider">Coming Soon</div>
+                      <div className="mb-8 relative z-10">
+                          <div className="text-stone-400 font-bold text-sm uppercase tracking-wider mb-2">Business</div>
+                          <div className="flex items-baseline gap-1">
+                              <span className="text-5xl font-display font-bold text-white">${billingCycle === 'monthly' ? '29' : '24'}</span>
+                              <span className="text-stone-500 font-medium">/mo</span>
                           </div>
+                          <p className="text-stone-400 mt-4 text-sm leading-relaxed">For professional creators and small teams.</p>
                       </div>
-                      <ul className="space-y-3 mb-8 flex-1">
-                          <li className="flex items-center gap-3 text-sm text-stone-300">
-                              <CheckCircle2 size={16} className="text-white" /> Unlimited Exports
-                          </li>
-                          <li className="flex items-center gap-3 text-sm text-stone-300">
-                              <CheckCircle2 size={16} className="text-white" /> Figma Import
-                          </li>
-                          <li className="flex items-center gap-3 text-sm text-stone-300">
-                              <CheckCircle2 size={16} className="text-white" /> Priority Support
-                          </li>
-                      </ul>
-                      <button className="w-full py-3 bg-white text-black rounded-lg font-medium hover:bg-stone-100 transition-colors text-sm">
+                      <div className="flex-1 space-y-4 mb-10 relative z-10">
+                          {['Unlimited Exports', 'Figma to Email', 'Priority Support', 'Custom Branding', '90-day History', 'Smart Analytics'].map(feature => (
+                              <div key={feature} className="flex items-center gap-3 text-sm text-stone-300 font-medium">
+                                  <div className="w-6 h-6 rounded-full bg-stone-800 flex items-center justify-center shrink-0 text-white"><Check size={12} /></div>
+                                  {feature}
+                              </div>
+                          ))}
+                      </div>
+                      <button onClick={() => navigate('/login')} className="w-full py-4 rounded-2xl bg-white text-black font-bold hover:bg-stone-100 transition-all shadow-lg shadow-white/10 relative z-10">
                           Join Waitlist
                       </button>
+                      
+                      {/* Decoration */}
+                      <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-stone-800/30 rounded-full blur-3xl pointer-events-none"></div>
                   </div>
 
                   {/* Enterprise */}
-                  <div className="p-8 border border-stone-200 rounded-2xl flex flex-col">
-                      <div className="mb-4">
-                          <h3 className="font-bold text-black">Teams</h3>
-                          <div className="mt-2 flex items-baseline gap-1">
-                              <span className="text-3xl font-bold text-black">$99</span>
-                              <span className="text-stone-500">/mo</span>
+                  <div className="p-10 rounded-[2.5rem] border border-stone-200 bg-white flex flex-col h-full hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-stone-100 text-stone-500 text-[10px] font-bold px-4 py-2 rounded-bl-2xl uppercase tracking-wider">Coming Soon</div>
+                      <div className="mb-8">
+                          <div className="text-stone-500 font-bold text-sm uppercase tracking-wider mb-2">Teams</div>
+                          <div className="flex items-baseline gap-1">
+                              <span className="text-5xl font-display font-bold text-stone-900">${billingCycle === 'monthly' ? '99' : '79'}</span>
+                              <span className="text-stone-400 font-medium">/mo</span>
                           </div>
+                          <p className="text-stone-500 mt-4 text-sm leading-relaxed">For scaling organizations and agencies.</p>
                       </div>
-                      <ul className="space-y-3 mb-8 flex-1">
-                          <li className="flex items-center gap-3 text-sm text-stone-600">
-                              <CheckCircle2 size={16} className="text-black" /> SSO / SAML
-                          </li>
-                          <li className="flex items-center gap-3 text-sm text-stone-600">
-                              <CheckCircle2 size={16} className="text-black" /> Custom Branding
-                          </li>
-                      </ul>
-                      <button className="w-full py-3 border border-stone-200 rounded-lg font-medium hover:border-black transition-colors text-sm">
-                          Contact Sales
+                      <div className="flex-1 space-y-4 mb-10">
+                          {['Everything in Business', 'SSO / SAML', 'Dedicated Success Manager', 'Custom Contracts', 'Audit Logs', 'Unlimited Seats'].map(feature => (
+                              <div key={feature} className="flex items-center gap-3 text-sm text-stone-600 font-medium">
+                                  <div className="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center shrink-0"><Check size={12} /></div>
+                                  {feature}
+                              </div>
+                          ))}
+                      </div>
+                      <button onClick={() => navigate('/login')} className="w-full py-4 rounded-2xl border border-stone-200 font-bold text-stone-900 hover:bg-stone-50 hover:border-stone-300 transition-all">
+                          Join Waitlist
                       </button>
                   </div>
 
