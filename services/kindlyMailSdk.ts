@@ -7,7 +7,9 @@ interface ComposeOptions {
 }
 
 export const KindlyMailSdk = {
-  serverUrl: 'https://backend-5r4si90ry-emanuels-projects-2b249438.vercel.app',
+  // We use a CORS proxy because the backend does not return Access-Control-Allow-Origin headers for our domain.
+  // In a production environment where you control the backend, you would configure CORS on the server instead.
+  serverUrl: 'https://corsproxy.io/?https://backend-5r4si90ry-emanuels-projects-2b249438.vercel.app',
   token: null as string | null,
 
   init(token: string) {
@@ -26,7 +28,9 @@ export const KindlyMailSdk = {
     try {
         const response = await fetch(`${this.serverUrl}/api/compose`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
             token: this.token,
             to,
@@ -38,13 +42,25 @@ export const KindlyMailSdk = {
         });
 
         if (!response.ok) {
-            const err = await response.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(err.error || response.statusText);
+            // Attempt to parse error JSON, fallback to status text
+            const errText = await response.text();
+            let errMsg = response.statusText;
+            try {
+                const jsonErr = JSON.parse(errText);
+                errMsg = jsonErr.error || errMsg;
+            } catch (e) {
+                errMsg = errText || errMsg;
+            }
+            throw new Error(`Server Error (${response.status}): ${errMsg}`);
         }
 
         return await response.json();
-    } catch (error) {
+    } catch (error: any) {
         console.error("SDK Error:", error);
+        // Provide a user-friendly error if it looks like a network/CORS issue that persisted
+        if (error.message === 'Failed to fetch') {
+            throw new Error("Network error. The backend might be unreachable or blocking the request.");
+        }
         throw error;
     }
   }

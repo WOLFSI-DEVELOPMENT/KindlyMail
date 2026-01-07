@@ -68,7 +68,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
   const [campaignName, setCampaignName] = useState('');
 
   // Gmail Specific State
-  const [gmailToken, setGmailToken] = useState('');
+  const [gmailToken, setGmailToken] = useState(localStorage.getItem('kindlymail_extension_token') || '');
   const [gmailTo, setGmailTo] = useState('');
   const [gmailCc, setGmailCc] = useState('');
   const [gmailSubject, setGmailSubject] = useState(subject);
@@ -76,11 +76,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
   useEffect(() => {
     setGmailSubject(subject);
     setCampaignName(subject);
-    
-    // Load Gmail token
-    const savedToken = localStorage.getItem('kindlymail_extension_token');
-    if (savedToken) setGmailToken(savedToken);
-  }, [subject, isOpen]);
+  }, [subject]);
 
   const handleClose = () => {
     onClose();
@@ -132,13 +128,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
                 html: emailHtml
             });
             setStatus('success');
-            setTimeout(() => {
-                // Keep success state briefly
-            }, 2000);
         } catch (e: any) {
             console.error(e);
             setStatus('error');
-            setErrorMessage(e.message || "Failed to trigger extension. Ensure the Chrome extension is installed and your token is correct.");
+            setErrorMessage(e.message || "Failed to trigger extension. Check your token.");
         }
         return;
     }
@@ -213,7 +206,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
 
         {/* View: Config */}
         {view === 'config' && selectedIntegration && (
-            <div className="p-8 flex flex-col h-full overflow-y-auto">
+            <div className="p-8 flex flex-col h-full overflow-y-auto custom-scrollbar">
                 
                 {/* Header */}
                 <div className="text-center mb-8 relative">
