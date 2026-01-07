@@ -9,7 +9,7 @@ interface ComposeOptions {
 export const KindlyMailSdk = {
   // We use a CORS proxy because the backend does not return Access-Control-Allow-Origin headers for our domain.
   // In a production environment where you control the backend, you would configure CORS on the server instead.
-  serverUrl: 'https://corsproxy.io/?https://backend-5r4si90ry-emanuels-projects-2b249438.vercel.app',
+  serverUrl: 'https://corsproxy.io/?https://backend-bice-eight-41.vercel.app',
   token: null as string | null,
 
   init(token: string) {
