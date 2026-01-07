@@ -268,8 +268,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ context, onUpdateCon
                             options={[
                                 { label: 'Gemini 3.0 Flash', value: 'gemini-3-flash-preview', description: 'Recommended: Fast and intelligent' },
                                 { label: 'Gemini 3.0 Pro', value: 'gemini-3-pro-preview', description: 'Best for complex reasoning' },
-                                { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash-preview', description: 'Efficient and capable' },
-                                { label: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro-preview', description: 'Strong reasoning capabilities' },
+                                { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash', description: 'Efficient and capable' },
+                                { label: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro', description: 'Strong reasoning capabilities' },
                                 { label: 'Gemini 2.0 Flash', value: 'gemini-2.0-flash', description: 'Standard 2.0 model' },
                                 { label: 'Gemini 2.0 Pro', value: 'gemini-2.0-pro-exp-02-05', description: 'Experimental 2.0 Pro' },
                                 { label: 'Gemini 2.0 Flash Lite', value: 'gemini-2.0-flash-lite-preview-02-05', description: 'Cost effective and fast' },
