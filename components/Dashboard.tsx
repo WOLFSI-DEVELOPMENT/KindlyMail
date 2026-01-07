@@ -394,6 +394,7 @@ export const Dashboard: React.FC = () => {
               handleBack(); // Reset state
               setActiveTab('home');
           }}
+          onGoToTemplates={() => setActiveTab('templates')}
         />
       );
     }
@@ -438,7 +439,7 @@ export const Dashboard: React.FC = () => {
 
   if (isAuthLoading) {
       return (
-          <div className="min-h-screen w-full flex items-center justify-center bg-[#f3f4f6]">
+          <div className="min-h-screen w-full flex items-center justify-center bg-white">
               <Loader2 className="animate-spin text-stone-400" size={32} />
           </div>
       );
@@ -452,9 +453,9 @@ export const Dashboard: React.FC = () => {
   if (!session) return null;
 
   return (
-    <div className="flex h-screen w-full bg-[#f3f4f6] p-3 font-sans overflow-hidden">
+    <div className="flex h-screen w-full bg-white font-sans overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${isSidebarCollapsed ? 'w-[80px]' : 'w-[240px]'} flex-shrink-0 flex flex-col py-6 transition-all duration-300 ease-in-out`}>
+      <aside className={`${isSidebarCollapsed ? 'w-[80px]' : 'w-[240px]'} flex-shrink-0 flex flex-col py-6 transition-all duration-300 ease-in-out border-r border-stone-100 bg-white`}>
         {/* Branding */}
         <div className={`mb-10 flex items-center gap-3 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}>
            <img src="https://iili.io/fNbamD7.md.png" alt="KindlyMail Logo" className="w-8 h-8 rounded-lg shadow-sm shrink-0" />
@@ -467,23 +468,23 @@ export const Dashboard: React.FC = () => {
 
         {/* Navigation */}
         <div className={`space-y-2 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
-             <button onClick={() => setActiveTab('home')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'home' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Home" : ""}><div className={`${activeTab === 'home' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Home size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Home</span>}</button>
-             <button onClick={() => setActiveTab('templates')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'templates' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Templates" : ""}><div className={`${activeTab === 'templates' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><LayoutTemplate size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Templates</span>}</button>
-             <button onClick={() => setActiveTab('creations')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'creations' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "My Creations" : ""}><div className={`${activeTab === 'creations' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><FolderHeart size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">My Creations</span>}</button>
-             <button onClick={() => setActiveTab('community')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'community' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Community" : ""}><div className={`${activeTab === 'community' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Users size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Community</span>}</button>
-             <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'settings' ? 'bg-white shadow-sm shadow-stone-200 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-white/40'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Settings" : ""}><div className={`${activeTab === 'settings' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Settings size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Settings</span>}</button>
+             <button onClick={() => setActiveTab('home')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'home' ? 'bg-stone-50 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-50'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Home" : ""}><div className={`${activeTab === 'home' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Home size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Home</span>}</button>
+             <button onClick={() => setActiveTab('templates')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'templates' ? 'bg-stone-50 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-50'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Templates" : ""}><div className={`${activeTab === 'templates' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><LayoutTemplate size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Templates</span>}</button>
+             <button onClick={() => setActiveTab('creations')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'creations' ? 'bg-stone-50 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-50'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "My Creations" : ""}><div className={`${activeTab === 'creations' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><FolderHeart size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">My Creations</span>}</button>
+             <button onClick={() => setActiveTab('community')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'community' ? 'bg-stone-50 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-50'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Community" : ""}><div className={`${activeTab === 'community' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Users size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Community</span>}</button>
+             <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group ${activeTab === 'settings' ? 'bg-stone-50 text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-50'} ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`} title={isSidebarCollapsed ? "Settings" : ""}><div className={`${activeTab === 'settings' ? 'text-pink-500' : 'text-stone-400 group-hover:text-stone-600 transition-colors'}`}><Settings size={20} /></div>{!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Settings</span>}</button>
         </div>
 
         {/* Footer Area */}
         <div className={`mt-auto ${isSidebarCollapsed ? 'px-2 flex flex-col items-center gap-4' : 'px-4'}`}>
-            <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="p-2 text-stone-400 hover:text-stone-900 hover:bg-white/40 rounded-xl transition-all mb-2" title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>{isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}</button>
+            <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-50 rounded-xl transition-all mb-2" title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>{isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}</button>
             {user && (<button onClick={() => setIsProfileModalOpen(true)} className={`flex items-center gap-3 p-1.5 rounded-full bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all w-full ${isSidebarCollapsed ? 'justify-center aspect-square p-0 w-10 h-10' : ''}`}><div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center overflow-hidden border border-stone-200 flex-shrink-0">{userAvatar ? (<img src={userAvatar} alt="User" className="w-full h-full object-cover" />) : (<User size={16} className="text-stone-400" />)}</div>{!isSidebarCollapsed && (<div className="flex-1 text-left min-w-0 pr-2"><p className="text-xs font-bold text-stone-900 truncate">{userName}</p><p className="text-[10px] text-stone-400 truncate">{userEmail}</p></div>)}</button>)}
-            {!user && (<button onClick={() => navigate('/')} className={`w-full p-2 text-stone-400 hover:text-red-500 hover:bg-white/40 rounded-xl transition-all flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`} title="Log Out"><LogOut size={16} />{!isSidebarCollapsed && <span className="text-sm font-medium">Log Out</span>}</button>)}
+            {!user && (<button onClick={() => navigate('/')} className={`w-full p-2 text-stone-400 hover:text-red-500 hover:bg-stone-50 rounded-xl transition-all flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`} title="Log Out"><LogOut size={16} />{!isSidebarCollapsed && <span className="text-sm font-medium">Log Out</span>}</button>)}
         </div>
       </aside>
 
       {/* Main Container */}
-      <main className="flex-1 bg-white rounded-[2.5rem] shadow-sm overflow-hidden relative border border-stone-100/50 ml-1">
+      <main className="flex-1 bg-white overflow-hidden relative">
          {renderContent()}
       </main>
       

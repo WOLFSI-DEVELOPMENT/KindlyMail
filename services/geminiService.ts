@@ -92,7 +92,6 @@ export const generateEmailDraft = async (
       BRANDING ENFORCEMENT:
       - **Logo**: If the user provides a [MANDATORY BRAND LOGO URL], you MUST place it at the top center of the email. Max height: 40px.
       - **Colors**: If the user provides a [MANDATORY PRIMARY COLOR], you MUST use it for the background of the main call-to-action button and for bold links or key headers. Do not ignore this color.
-      - **Context Website**: If provided, use the 'googleSearch' tool to visit it and learn the tone of voice and supplementary design cues (but the manually provided logo/color takes precedence).
       
       IMAGE & FIGMA HANDLING:
       - If the prompt includes an [Attached Content Image], you MUST include it using <img src="..." style="width: 100%; border-radius: 12px; display: block; margin-bottom: 24px;" />.
@@ -186,8 +185,8 @@ export const generateEmailDraft = async (
       contents: promptText,
       config: {
         systemInstruction,
-        // Enable Google Search for website analysis
-        tools: [{ googleSearch: {} }],
+        // DISABLED TOOLS: Conflict with responseMimeType: 'application/json' in API version.
+        // tools: [],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -213,6 +212,11 @@ export const generateEmailDraft = async (
     if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('rate limit')) {
         errorMessage = "You've hit the rate limit for the AI model. Please wait a moment and try again.";
         errorDetails = "Rate Limit Exceeded (429). The system is retrying automatically, but traffic is high.";
+    }
+    
+    if (error.status === 400 || error.message?.includes('400')) {
+        errorMessage = "There was a configuration error with the AI request.";
+        errorDetails = "400 Bad Request. Likely tool/JSON conflict.";
     }
 
     return {
@@ -279,27 +283,26 @@ export const analyzeBrandAssets = async (url: string): Promise<BrandAssets> => {
             contents: `Analyze the visual identity of this website: ${url}. 
             Extract the primary brand color (hex code), a secondary accent color (hex code), and the primary font family used (or a generic fallback that matches the vibe).
             
-            Return JSON only:
+            Return ONLY a raw JSON object (no markdown code blocks) with this structure:
             {
                 "colors": ["#primary", "#secondary"],
                 "fonts": ["Font Name"]
             }`,
             config: {
                 tools: [{ googleSearch: {} }],
-                responseMimeType: "application/json",
-                responseSchema: {
-                   type: Type.OBJECT,
-                   properties: {
-                       colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                       fonts: { type: Type.ARRAY, items: { type: Type.STRING } }
-                   }
-                }
+                // Removed responseMimeType: 'application/json' to allow tool use.
+                // We will parse the text manually.
             }
         }));
         
         const text = response.text;
         if (!text) return { colors: ['#000000'], fonts: ['Helvetica'] };
-        return JSON.parse(text) as BrandAssets;
+        
+        // Manual JSON extraction
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : text;
+        
+        return JSON.parse(jsonStr) as BrandAssets;
 
     } catch (e) {
         console.error("Brand analysis failed", e);
