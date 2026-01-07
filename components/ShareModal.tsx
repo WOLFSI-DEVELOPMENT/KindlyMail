@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { X, ChevronLeft, Heart, ArrowRightLeft, ExternalLink, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ChevronLeft, Heart, ArrowRightLeft, ExternalLink, Plus, Key, Mail, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { KindlyMailSdk } from '../services/kindlyMailSdk';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -8,7 +9,7 @@ interface ShareModalProps {
   subject: string;
 }
 
-type IntegrationId = 'klaviyo' | 'brevo' | 'mailchimp';
+type IntegrationId = 'gmail' | 'klaviyo' | 'brevo' | 'mailchimp';
 
 interface Integration {
   id: IntegrationId;
@@ -16,38 +17,70 @@ interface Integration {
   logo: string;
   apiKeyUrl: string;
   bg: string;
+  description: string;
 }
 
 const INTEGRATIONS: Integration[] = [
+  {
+    id: 'gmail',
+    name: 'Gmail',
+    logo: 'https://cdn.worldvectorlogo.com/logos/gmail-icon.svg',
+    apiKeyUrl: '#',
+    bg: '#ffffff',
+    description: 'Compose directly in Gmail'
+  },
   {
     id: 'klaviyo',
     name: 'Klaviyo',
     logo: 'https://cdn.worldvectorlogo.com/logos/klaviyo.svg',
     apiKeyUrl: 'https://www.klaviyo.com/settings/account/api-keys',
-    bg: '#ffffff'
+    bg: '#ffffff',
+    description: 'Marketing Automation'
   },
   {
     id: 'brevo',
     name: 'Brevo',
     logo: 'https://corp-backend.brevo.com/wp-content/uploads/2023/04/Brevo-Logo-1.svg',
     apiKeyUrl: 'https://app.brevo.com/settings/keys/api',
-    bg: '#0F6938'
+    bg: '#0F6938',
+    description: 'CRM Suite'
   },
   {
     id: 'mailchimp',
     name: 'Mailchimp',
     logo: 'https://cdn.worldvectorlogo.com/logos/mailchimp-freddie-icon.svg',
     apiKeyUrl: 'https://admin.mailchimp.com/account/api/',
-    bg: '#FFE01B'
+    bg: '#FFE01B',
+    description: 'Email Marketing'
   }
 ];
 
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHtml, subject }) => {
   const [view, setView] = useState<'selection' | 'config'>('selection');
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
+  
+  // Generic State
+  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // API Key State (for standard integrations)
   const [apiKey, setApiKey] = useState('');
-  const [submitterId, setSubmitterId] = useState(''); // Added to match reference
-  const [status, setStatus] = useState<'idle' | 'sending' | 'success'>('idle');
+  const [campaignName, setCampaignName] = useState('');
+
+  // Gmail Specific State
+  const [gmailToken, setGmailToken] = useState('');
+  const [gmailTo, setGmailTo] = useState('');
+  const [gmailCc, setGmailCc] = useState('');
+  const [gmailSubject, setGmailSubject] = useState(subject);
+
+  useEffect(() => {
+    setGmailSubject(subject);
+    setCampaignName(subject);
+    
+    // Load Gmail token
+    const savedToken = localStorage.getItem('kindlymail_extension_token');
+    if (savedToken) setGmailToken(savedToken);
+  }, [subject, isOpen]);
 
   const handleClose = () => {
     onClose();
@@ -56,8 +89,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
         setView('selection');
         setSelectedIntegration(null);
         setApiKey('');
-        setSubmitterId('');
+        setCampaignName('');
         setStatus('idle');
+        setErrorMessage('');
+        setGmailTo('');
+        setGmailCc('');
     }, 300);
   };
 
@@ -71,24 +107,60 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
   const handleBack = () => {
     setView('selection');
     setSelectedIntegration(null);
-    setApiKey('');
-    setSubmitterId('');
+    setErrorMessage('');
+    setStatus('idle');
   };
 
   const handleSend = async () => {
-    if (!apiKey || !selectedIntegration) return;
-
     setStatus('sending');
-    
-    // Simulate API call
+    setErrorMessage('');
+
+    if (selectedIntegration?.id === 'gmail') {
+        if (!gmailToken || !gmailTo) {
+            setErrorMessage('Token and Recipient are required.');
+            setStatus('error');
+            return;
+        }
+
+        try {
+            localStorage.setItem('kindlymail_extension_token', gmailToken);
+            KindlyMailSdk.init(gmailToken);
+            await KindlyMailSdk.compose({
+                to: gmailTo,
+                cc: gmailCc,
+                subject: gmailSubject,
+                html: emailHtml
+            });
+            setStatus('success');
+            setTimeout(() => {
+                // Keep success state briefly
+            }, 2000);
+        } catch (e: any) {
+            console.error(e);
+            setStatus('error');
+            setErrorMessage(e.message || "Failed to trigger extension. Ensure the Chrome extension is installed and your token is correct.");
+        }
+        return;
+    }
+
+    // Standard API Integrations (Mocked)
+    if (!apiKey) {
+        setErrorMessage('API Key is required.');
+        setStatus('error');
+        return;
+    }
+
     setTimeout(() => {
-        console.log(`Sending to ${selectedIntegration.name}...`, { apiKey, submitterId, subject, html: emailHtml });
+        console.log(`Sending to ${selectedIntegration?.name}...`, { apiKey, campaignName, html: emailHtml });
         setStatus('success');
-        setTimeout(() => {
-            setStatus('idle');
-            handleClose();
-        }, 2000);
     }, 1500);
+  };
+
+  const isFormValid = () => {
+      if (selectedIntegration?.id === 'gmail') {
+          return gmailToken.length > 0 && gmailTo.length > 0;
+      }
+      return apiKey.length > 0;
   };
 
   return (
@@ -100,12 +172,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
       />
 
       {/* Modal Content */}
-      <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-[500px] overflow-hidden animate-in zoom-in-95 fade-in duration-300 ease-out flex flex-col">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[500px] overflow-hidden animate-in zoom-in-95 fade-in duration-300 ease-out flex flex-col max-h-[90vh]">
         
         {/* Close Button */}
         <button 
             onClick={handleClose}
-            className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 transition-colors z-10"
+            className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 transition-colors z-10 p-2 hover:bg-stone-50 rounded-full"
         >
             <X size={20} />
         </button>
@@ -121,15 +193,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
                         <button
                             key={integration.id}
                             onClick={() => handleSelect(integration)}
-                            className="w-full flex items-center gap-4 p-4 rounded-xl border border-stone-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all group text-left"
+                            className="w-full flex items-center gap-4 p-4 rounded-xl border border-stone-200 hover:border-black/20 hover:bg-stone-50 transition-all group text-left shadow-sm hover:shadow-md"
                         >
-                            <div className="w-10 h-10 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-center p-2 shrink-0">
+                            <div className="w-12 h-12 rounded-xl bg-white border border-stone-100 flex items-center justify-center p-2.5 shrink-0 shadow-sm">
                                 <img src={integration.logo} alt={integration.name} className="w-full h-full object-contain" />
                             </div>
                             <div className="flex-grow">
-                                <h3 className="font-semibold text-stone-900">{integration.name}</h3>
+                                <h3 className="font-bold text-stone-900">{integration.name}</h3>
+                                <p className="text-xs text-stone-500">{integration.description}</p>
                             </div>
-                            <div className="text-stone-300 group-hover:text-blue-500">
+                            <div className="text-stone-300 group-hover:text-stone-900 transition-colors">
                                 <ChevronLeft size={20} className="rotate-180" />
                             </div>
                         </button>
@@ -138,108 +211,179 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, emailHt
             </div>
         )}
 
-        {/* View: Config (Matching Reference) */}
+        {/* View: Config */}
         {view === 'config' && selectedIntegration && (
-            <div className="p-8 md:p-10 flex flex-col items-center text-center">
+            <div className="p-8 flex flex-col h-full overflow-y-auto">
                 
-                {/* Back Button (Absolute) */}
-                <button 
-                    onClick={handleBack} 
-                    className="absolute top-4 left-4 text-stone-400 hover:text-stone-600 transition-colors flex items-center gap-1 text-sm font-medium"
-                >
-                    <ChevronLeft size={16} /> Back
-                </button>
+                {/* Header */}
+                <div className="text-center mb-8 relative">
+                    <button 
+                        onClick={handleBack} 
+                        className="absolute top-0 left-0 text-stone-400 hover:text-stone-900 transition-colors flex items-center gap-1 text-sm font-medium"
+                    >
+                        <ChevronLeft size={16} /> Back
+                    </button>
 
-                {/* Connection Visual */}
-                <div className="flex items-center gap-6 mb-6 mt-2">
-                    {/* KindlyMail Logo */}
-                    <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center shadow-sm">
-                        <Heart fill="white" className="text-white" size={32} />
-                    </div>
-                    
-                    {/* Arrows */}
-                    <div className="text-stone-300">
-                        <ArrowRightLeft size={24} />
+                    <div className="flex items-center justify-center gap-4 mt-8 mb-4">
+                        <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center shadow-md">
+                            <Heart fill="white" className="text-white" size={24} />
+                        </div>
+                        <div className="text-stone-300">
+                            <ArrowRightLeft size={20} />
+                        </div>
+                        <div className="w-14 h-14 bg-white border border-stone-200 rounded-2xl flex items-center justify-center p-3 shadow-md">
+                             <img src={selectedIntegration.logo} alt={selectedIntegration.name} className="w-full h-full object-contain" />
+                        </div>
                     </div>
 
-                    {/* Integration Logo */}
-                    <div className="w-16 h-16 bg-white border border-stone-200 rounded-2xl flex items-center justify-center p-3 shadow-sm">
-                         <img src={selectedIntegration.logo} alt={selectedIntegration.name} className="w-full h-full object-contain" />
-                    </div>
+                    <h2 className="text-lg font-bold text-stone-900">
+                        {status === 'success' ? 'Sent Successfully!' : `Connect to ${selectedIntegration.name}`}
+                    </h2>
                 </div>
 
-                <h2 className="text-xl font-bold text-stone-900 mb-2">
-                    Connecting KindlyMail to {selectedIntegration.name}
-                </h2>
-                
-                <p className="text-sm text-stone-500 mb-8 max-w-xs leading-relaxed">
-                    Enter your API credentials below to authorize the secure transfer of your email template.
-                </p>
-
-                {/* Form */}
-                <div className="w-full space-y-5 text-left">
-                    <div className="space-y-1.5">
-                        <div className="flex justify-between">
-                            <label className="text-sm font-semibold text-stone-900">API Key</label>
+                {status === 'success' ? (
+                    <div className="text-center py-4 animate-in fade-in zoom-in duration-300">
+                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle2 size={32} />
                         </div>
-                        <input 
-                            type="password"
-                            value={apiKey}
-                            onChange={(e) => setApiKey(e.target.value)}
-                            placeholder="Enter API Key"
-                            className="w-full bg-white border border-stone-200 rounded-lg px-4 py-2.5 text-stone-900 placeholder-stone-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                        />
+                        <p className="text-stone-600 text-sm mb-6">
+                            {selectedIntegration.id === 'gmail' 
+                                ? 'Check your open tabs. A new Gmail compose window has been created.'
+                                : 'Your template has been exported successfully.'}
+                        </p>
+                        <button onClick={handleClose} className="bg-stone-100 text-stone-900 px-6 py-2.5 rounded-full font-bold text-sm hover:bg-stone-200">
+                            Done
+                        </button>
                     </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-semibold text-stone-900">Campaign Name (Optional)</label>
-                        <input 
-                            type="text"
-                            value={submitterId}
-                            onChange={(e) => setSubmitterId(e.target.value)}
-                            placeholder={subject || "Enter Campaign Name"}
-                            className="w-full bg-white border border-stone-200 rounded-lg px-4 py-2.5 text-stone-900 placeholder-stone-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                        />
-                    </div>
-
-                    <button 
-                        onClick={handleSend}
-                        disabled={!apiKey || status !== 'idle'}
-                        className={`
-                            w-full py-3 rounded-lg font-semibold text-white shadow-sm transition-all duration-200 flex items-center justify-center gap-2 mt-2
-                            ${status === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}
-                            ${(!apiKey || status === 'sending') ? 'opacity-70 cursor-not-allowed' : 'active:scale-[0.98]'}
-                        `}
-                    >
-                        {status === 'sending' ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : status === 'success' ? (
-                            <span>Connected & Sent!</span>
-                        ) : (
+                ) : (
+                    <div className="w-full space-y-5">
+                        
+                        {/* Gmail Specific Form */}
+                        {selectedIntegration.id === 'gmail' ? (
                             <>
-                                <Plus size={18} />
-                                <span>Connect</span>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-stone-500 uppercase flex justify-between">
+                                        <span>Extension Token</span>
+                                        <span className="text-stone-300 text-[10px] cursor-help" title="Click the KindlyMail extension icon in your browser toolbar">Where is this?</span>
+                                    </label>
+                                    <div className="relative">
+                                        <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
+                                        <input 
+                                            type="password"
+                                            value={gmailToken}
+                                            onChange={(e) => setGmailToken(e.target.value)}
+                                            placeholder="Paste token from Chrome extension"
+                                            className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 font-mono transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-stone-500 uppercase">To</label>
+                                        <input 
+                                            type="text"
+                                            value={gmailTo}
+                                            onChange={(e) => setGmailTo(e.target.value)}
+                                            placeholder="email@example.com"
+                                            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-stone-500 uppercase">CC</label>
+                                        <input 
+                                            type="text"
+                                            value={gmailCc}
+                                            onChange={(e) => setGmailCc(e.target.value)}
+                                            placeholder="Optional"
+                                            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-stone-500 uppercase">Subject</label>
+                                    <input 
+                                        type="text"
+                                        value={gmailSubject}
+                                        onChange={(e) => setGmailSubject(e.target.value)}
+                                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            /* Standard Integration Form */
+                            <>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-stone-500 uppercase">API Key</label>
+                                    <input 
+                                        type="password"
+                                        value={apiKey}
+                                        onChange={(e) => setApiKey(e.target.value)}
+                                        placeholder={`Enter ${selectedIntegration.name} API Key`}
+                                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-stone-500 uppercase">Campaign Name</label>
+                                    <input 
+                                        type="text"
+                                        value={campaignName}
+                                        onChange={(e) => setCampaignName(e.target.value)}
+                                        placeholder="My Awesome Campaign"
+                                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                                    />
+                                </div>
                             </>
                         )}
-                    </button>
-                </div>
 
-                {/* Footer Disclaimer */}
-                <div className="mt-8 pt-6 border-t border-stone-100 w-full text-center">
-                    <p className="text-xs text-stone-400 leading-relaxed px-4">
-                        By clicking Connect, you authorize KindlyMail to create drafts in your {selectedIntegration.name} account. 
-                        You can revoke this access at any time in your {selectedIntegration.name} settings.
-                    </p>
-                    <a 
-                        href={selectedIntegration.apiKeyUrl} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 mt-4 hover:underline"
-                    >
-                        Read documentation <ExternalLink size={10} />
-                    </a>
-                </div>
+                        {/* Error Message */}
+                        {status === 'error' && (
+                            <div className="bg-red-50 text-red-600 text-xs p-3 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                                <span>{errorMessage}</span>
+                            </div>
+                        )}
 
+                        {/* Action Button */}
+                        <button 
+                            onClick={handleSend}
+                            disabled={!isFormValid() || status === 'sending'}
+                            className={`
+                                w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 mt-4
+                                ${selectedIntegration.id === 'gmail' 
+                                    ? 'bg-red-600 hover:bg-red-700 shadow-red-200' 
+                                    : 'bg-black hover:bg-stone-800 shadow-stone-200'
+                                }
+                                disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
+                            `}
+                        >
+                            {status === 'sending' ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <>
+                                    {selectedIntegration.id === 'gmail' ? <Mail size={18} /> : <Plus size={18} />}
+                                    <span>{selectedIntegration.id === 'gmail' ? 'Compose in Gmail' : 'Connect & Export'}</span>
+                                </>
+                            )}
+                        </button>
+
+                        {/* Footer Link */}
+                        {selectedIntegration.apiKeyUrl !== '#' && (
+                            <div className="text-center pt-2">
+                                <a 
+                                    href={selectedIntegration.apiKeyUrl} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-400 hover:text-stone-600 uppercase tracking-wide transition-colors"
+                                >
+                                    Where to find API Key <ExternalLink size={10} />
+                                </a>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         )}
 

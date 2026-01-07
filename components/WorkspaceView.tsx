@@ -3,7 +3,6 @@ import { Button } from './ui/Button';
 import { Message, GeneratedEmail } from '../types';
 import { ArrowUp, ChevronLeft, Download, Eye, Layout, Monitor, Moon, Share2, Smartphone, Copy, FileCode, Check, Save, MessageSquare, Edit3, Globe, Mail } from 'lucide-react';
 import { ShareModal } from './ShareModal';
-import { GmailSendModal } from './GmailSendModal';
 import { VisualEditor } from './VisualEditor';
 
 interface WorkspaceViewProps {
@@ -29,7 +28,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [prompt, setPrompt] = useState('');
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isGmailModalOpen, setIsGmailModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   
@@ -407,14 +405,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               </div>
               
               <div className="flex items-center gap-2">
-                  <Button 
-                      variant="secondary" 
-                      className="!py-2 !px-4 text-xs bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100" 
-                      onClick={() => setIsGmailModalOpen(true)}
-                  >
-                      <Mail size={14} className="mr-2" /> Gmail
-                  </Button>
-
                   {onSave && (
                     <Button 
                         variant="secondary" 
@@ -441,17 +431,17 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <Button variant="ghost" className="!p-2">
                       <Eye size={18} />
                   </Button>
-                  <Button variant="secondary" className="!py-2 !px-4 text-xs" onClick={() => setIsShareOpen(true)}>
-                      <Share2 size={14} className="mr-2" /> Share
+                  <Button variant="secondary" className="!py-2 !px-4 text-xs bg-stone-900 text-white hover:bg-stone-800" onClick={() => setIsShareOpen(true)}>
+                      <Share2 size={14} className="mr-2" /> Export
                   </Button>
                   
                   {/* Export Dropdown */}
                   <div className="relative" ref={exportBtnRef}>
                     <Button 
-                        className="!py-2 !px-4 text-xs bg-black" 
+                        className="!py-2 !px-4 text-xs bg-white text-stone-900 border border-stone-200 hover:bg-stone-50" 
                         onClick={() => setShowExportMenu(!showExportMenu)}
                     >
-                        <Download size={14} className="mr-2" /> Export
+                        <Download size={14} className="mr-2" />
                     </Button>
                     
                     {showExportMenu && (
@@ -509,13 +499,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
         emailHtml={draft.body}
-        subject={draft.subject}
-      />
-      
-      <GmailSendModal 
-        isOpen={isGmailModalOpen}
-        onClose={() => setIsGmailModalOpen(false)}
-        html={draft.body}
         subject={draft.subject}
       />
     </div>
